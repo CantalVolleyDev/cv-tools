@@ -29,6 +29,7 @@ public class ProductionDeployment {
 	private static final String DAO_PROJECT_PATH = "project.dao";
 	private static final String MODEL_PROJECT_PATH = "project.model";
 	private static final String API_PROJECT_PATH = "project.api";
+	private static final String UTILS_PROJECT_PATH = "project.utils";
 	private static final String MAVEN_HOME = "maven.home";
 	
 	public static void main(String[] args)
@@ -42,7 +43,9 @@ public class ProductionDeployment {
 	throws IOException {
 		try {
 			List<String> goals = Arrays.asList("clean","install");
-			List<String> projects = Arrays.asList(DAO_PROJECT_PATH, MODEL_PROJECT_PATH, API_PROJECT_PATH);
+			List<String> projects = Arrays.asList(
+				UTILS_PROJECT_PATH, DAO_PROJECT_PATH, MODEL_PROJECT_PATH, API_PROJECT_PATH
+			);
 			Properties properties = ResourceUtils.readProperties("tools");
 			InvocationRequest request;
 			Invoker invoker = new DefaultInvoker();
