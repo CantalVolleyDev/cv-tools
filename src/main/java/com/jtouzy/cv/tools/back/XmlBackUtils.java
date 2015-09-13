@@ -19,10 +19,14 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
+import com.jtouzy.cv.model.classes.ChampionshipTeam;
+import com.jtouzy.cv.model.classes.ChampionshipWeeks;
 import com.jtouzy.cv.model.classes.Comment;
 import com.jtouzy.cv.model.classes.News;
 import com.jtouzy.cv.model.classes.User;
 import com.jtouzy.cv.model.dao.ChampionshipDAO;
+import com.jtouzy.cv.model.dao.ChampionshipTeamDAO;
+import com.jtouzy.cv.model.dao.ChampionshipWeeksDAO;
 import com.jtouzy.cv.model.dao.CommentDAO;
 import com.jtouzy.cv.model.dao.CompetitionDAO;
 import com.jtouzy.cv.model.dao.GymDAO;
@@ -52,13 +56,14 @@ public class XmlBackUtils {
 	private static Connection connection;
 	private static Multimap<TableContext, Object> values;
 	private static final List<String> tableList = Lists.newArrayList(
-		"usr", "sai", "cmp", "chp", "mat", "eqi", "pma", "gym", "cmt"
+		"usr", "sai", "cmp", "chp", "mat", "eqi", "pma", "gym", "cmt", "ech", "wsem"
 	);
 	private static final List<String> excludeColumns = Lists.newArrayList(
 		"ufbcmp",
 		"eqicmt", "notcmt",
 		"etaeqi",
-		"gkeusr"
+		"gkeusr",
+		"grpech", "libech"
 	);
 	private static final Map<String, Integer> objectsSummary = new LinkedHashMap<>();
 	private static final Map<String, Integer> dataSummary = new LinkedHashMap<>();
@@ -273,6 +278,8 @@ public class XmlBackUtils {
 		daoClasses.put("mat", (Class<D>)MatchDAO.class);
 		daoClasses.put("cmt", (Class<D>)CommentDAO.class);
 		daoClasses.put("nws", (Class<D>)NewsDAO.class);
+		daoClasses.put("wsem", (Class<D>)ChampionshipWeeksDAO.class);
+		daoClasses.put("ech", (Class<D>)ChampionshipTeamDAO.class);
 		
 		try {
 			TableContext context = null;
