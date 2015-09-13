@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.cli.CommandLine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -16,10 +17,12 @@ import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 
 import com.jtouzy.utils.resources.ResourceUtils;
+import com.jtouzy.cv.tools.AbstractTool;
+import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.utils.ftp.FTPCli;
 import com.jtouzy.utils.ssh.SSHCli;
 
-public class ProductionDeployment {
+public class ProductionDeployment extends AbstractTool {
 	private static Logger logger = LogManager.getLogger(ProductionDeployment.class);
 	private static final String SSH_USER = "ssh.user";
 	private static final String SSH_PASSWORD = "ssh.password";
@@ -32,14 +35,24 @@ public class ProductionDeployment {
 	private static final String UTILS_PROJECT_PATH = "project.utils";
 	private static final String MAVEN_HOME = "maven.home";
 	
-	public static void main(String[] args)
+	public ProductionDeployment(CommandLine commandLine) {
+		super(commandLine);
+	}
+
+	@Override
+	public void execute() 
+	throws ToolsException {
+		
+	}
+	
+	private void deployWebAPI()
 	throws ProductionDeploymentException, IOException {
 		buildLocalProjects();
 		uploadWebAPIProject();
 		tomcatDeployAndSave();
 	}
 	
-	private static void buildLocalProjects()
+	private void buildLocalProjects()
 	throws IOException {
 		try {
 			List<String> goals = Arrays.asList("clean","install");
@@ -64,7 +77,7 @@ public class ProductionDeployment {
 		}
 	}
 	
-	private static void uploadWebAPIProject()
+	private void uploadWebAPIProject()
 	throws IOException {
 		logger.trace("Téléchargement des fichiers sur le serveur...");
 		Properties properties = ResourceUtils.readProperties("tools");
@@ -75,7 +88,7 @@ public class ProductionDeployment {
 		logger.trace("Téléchargement terminé.");
 	}
 	
-	private static void tomcatDeployAndSave()
+	private void tomcatDeployAndSave()
 	throws IOException {
 		logger.trace("Exécution des commandes sur le serveur...");
 		Properties properties = ResourceUtils.readProperties("tools");
