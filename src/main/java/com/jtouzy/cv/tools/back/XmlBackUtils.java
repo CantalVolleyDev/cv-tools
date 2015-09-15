@@ -14,15 +14,16 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
-import com.jtouzy.cv.model.classes.ChampionshipTeam;
 import com.jtouzy.cv.model.classes.ChampionshipWeeks;
 import com.jtouzy.cv.model.classes.Comment;
 import com.jtouzy.cv.model.classes.News;
+import com.jtouzy.cv.model.classes.SeasonTeam;
 import com.jtouzy.cv.model.classes.User;
 import com.jtouzy.cv.model.dao.ChampionshipDAO;
 import com.jtouzy.cv.model.dao.ChampionshipTeamDAO;
@@ -33,6 +34,7 @@ import com.jtouzy.cv.model.dao.GymDAO;
 import com.jtouzy.cv.model.dao.MatchDAO;
 import com.jtouzy.cv.model.dao.NewsDAO;
 import com.jtouzy.cv.model.dao.SeasonDAO;
+import com.jtouzy.cv.model.dao.SeasonTeamDAO;
 import com.jtouzy.cv.model.dao.TeamDAO;
 import com.jtouzy.cv.model.dao.UserDAO;
 import com.jtouzy.cv.tools.generate.DBGenerateTool;
@@ -56,14 +58,15 @@ public class XmlBackUtils {
 	private static Connection connection;
 	private static Multimap<TableContext, Object> values;
 	private static final List<String> tableList = Lists.newArrayList(
-		"usr", "sai", "cmp", "chp", "mat", "eqi", "pma", "gym", "cmt", "ech", "wsem"
+		"usr", "sai", "cmp", "chp", "mat", "eqi", "eqs", "pma", "gym", "cmt", "ech", "wsem"
 	);
 	private static final List<String> excludeColumns = Lists.newArrayList(
 		"ufbcmp",
 		"eqicmt", "notcmt",
 		"etaeqi",
 		"gkeusr",
-		"grpech", "libech"
+		"grpech", "libech",
+		"libeqs"
 	);
 	private static final Map<String, Integer> objectsSummary = new LinkedHashMap<>();
 	private static final Map<String, Integer> dataSummary = new LinkedHashMap<>();
@@ -158,10 +161,17 @@ public class XmlBackUtils {
 		while (it.hasNext()) {
 			field = it.next();
 			name = field.getAttributeValue("name");
+			value = field.getValue();
 			if (excludeColumns.contains(name))
 				continue;
+			
+			if (name.equals("hreeqs") || name.equals("jrneqs")) {
+				String inf = ((SeasonTeam)instance).getInformation(); 
+				((SeasonTeam)instance).setInformation(inf == null ? (String)value : (inf + "_" + value));
+				continue;
+			}
+			
 			columnContext = tableContext.getColumnContext(name);
-			value = field.getValue();
 			if (String.valueOf(value).length() != 0) {
 				switch (columnContext.getType()) {
 					case BOOLEAN:
@@ -196,6 +206,16 @@ public class XmlBackUtils {
 				if (columnContext.getType() == DBType.BOOLEAN)
 					value = false;
 			}
+			
+			if (columnContext.isRelationColumn()) {
+				Class<?> relationClass = columnContext.getFieldContext().getField().getType();
+				TableContext tableCtx = ModelContext.getTableContext(relationClass);
+				Map<Integer,Integer> equivalencesId = equivalences.row(tableCtx);
+				if (equivalencesId != null && equivalencesId.size() > 0) {
+					value = equivalencesId.get(value);
+				}
+			}
+			
 			ObjectUtils.setValue(instance, columnContext, value);
 		}
 		values.put(tableContext, instance);
@@ -203,7 +223,7 @@ public class XmlBackUtils {
 	
 	private static void trtData()
 	throws Exception {
-		Iterator<TableContext> it = values.keys().iterator();
+		Iterator<TableContext> it = values.keySet().iterator();
 		Iterator<Object> itObj = null;
 		TableContext tableContext;
 		while (it.hasNext()) {
@@ -218,6 +238,46 @@ public class XmlBackUtils {
 					comment = (Comment)itObj.next();
 					// Date temporaire : Aller chercher la date du match
 					comment.setDate(LocalDateTime.of(2014, 01, 01, 00, 00));
+				}
+			}
+			// ----------------------------------------------
+			// Traitement pour les équipes/saison : Modif des dates
+			// ----------------------------------------------
+			else if (tableContext.getName().equals("eqs")) {
+				itObj = values.get(tableContext).iterator();
+				SeasonTeam st = null;
+				while (itObj.hasNext()) {
+					st = (SeasonTeam)itObj.next();
+					List<String> infos = Splitter.on("_")
+							                     .splitToList(st.getInformation());
+					String day = infos.get(0);
+					String hour = infos.get(1).substring(0, 2);
+					String min = infos.get(1).substring(2, 4);
+					LocalDateTime realDate = LocalDateTime.of(2015, 2, 1, 
+							                                  Integer.parseInt(hour), 
+							                                  Integer.parseInt(min));
+					int amount = 0;
+					switch (day) {
+						case "LU": amount = 1; break;
+						case "MA": amount = 2; break;
+						case "ME": amount = 3; break;
+						case "JE": amount = 4; break;
+						case "VE": amount = 5; break;
+						case "SA": amount = 6; break;
+						case "DI": amount = 0; break;
+					}
+					st.setDate(realDate.plusDays(amount));
+				}
+			}
+			// ----------------------------------------------
+			// Traitement pour les semaines/championnats : Modif des dates
+			// ----------------------------------------------
+			else if (tableContext.getName().equals("wsem")) {
+				itObj = values.get(tableContext).iterator();
+				ChampionshipWeeks chw = null;
+				while (itObj.hasNext()) {
+					chw = (ChampionshipWeeks)itObj.next();
+					chw.setWeekDate(chw.getWeekDate().plusDays(1));
 				}
 			}
 		}
@@ -273,6 +333,7 @@ public class XmlBackUtils {
 		daoClasses.put("eqi", (Class<D>)TeamDAO.class);
 		daoClasses.put("gym", (Class<D>)GymDAO.class);
 		daoClasses.put("sai", (Class<D>)SeasonDAO.class);
+		daoClasses.put("eqs", (Class<D>)SeasonTeamDAO.class);
 		daoClasses.put("cmp", (Class<D>)CompetitionDAO.class);
 		daoClasses.put("chp", (Class<D>)ChampionshipDAO.class);
 		daoClasses.put("mat", (Class<D>)MatchDAO.class);
@@ -301,19 +362,34 @@ public class XmlBackUtils {
 	throws Exception {
 		D dao = DAOManager.getDAO(connection, clazz);
 		Iterator<Object> it = values.get(tableContext).iterator();
+		Iterator<ColumnContext> itc;
 		Object object;
 		Integer count = 0;
-		ColumnContext columnContext = tableContext.getAutoGeneratedField();
-		boolean isAutoGenerated = columnContext != null;
-		Integer oldValue = null;
+		ColumnContext columnContext;
+		ColumnContext autoGeneratedColumnContext = tableContext.getAutoGeneratedField();
+		boolean isAutoGenerated = autoGeneratedColumnContext != null;
+		Integer oldValue = null, value = null;
 		while (it.hasNext()) {
 			object = it.next();
 			if (isAutoGenerated) {
-				oldValue = Integer.parseInt(String.valueOf(ObjectUtils.getValue(object, columnContext)));
+				oldValue = Integer.parseInt(String.valueOf(ObjectUtils.getValue(object, autoGeneratedColumnContext)));
 			}
-			dao.create((T)object);
+			itc = tableContext.getColumns().iterator();
+			while (itc.hasNext()) {
+				columnContext = itc.next();
+				if (columnContext.isRelationColumn()) {
+					Class<?> relationClass = columnContext.getFieldContext().getField().getType();
+					TableContext tableCtx = ModelContext.getTableContext(relationClass);
+					Map<Integer,Integer> equivalencesId = equivalences.row(tableCtx);
+					if (equivalencesId != null && equivalencesId.size() > 0) {
+						value = equivalencesId.get(ObjectUtils.getValue(object, columnContext));
+						ObjectUtils.setValue(object, columnContext, value);
+					}
+				}
+			}
+			object = dao.create((T)object);
 			if (isAutoGenerated) {
-				equivalences.put(tableContext, oldValue, Integer.parseInt(String.valueOf(ObjectUtils.getValue(object, columnContext))));
+				equivalences.put(tableContext, oldValue, Integer.parseInt(String.valueOf(ObjectUtils.getValue(object, autoGeneratedColumnContext))));
 			}
 			count ++;
 			dataSummary.put(tableContext.getName(), count);
