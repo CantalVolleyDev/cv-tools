@@ -36,6 +36,8 @@ public class ToolsEntry {
 		tool.setRequired(true);
 		tool.setArgs(1);
 		options.addOption(tool);
+		options.addOption(new Option(Commands.DEPLOY_WEBAPP_OPTION, "Déploiement webapp"));
+		options.addOption(new Option(Commands.DEPLOY_API_OPTION, "Déploiement api"));
 		return options;
 	}
 	

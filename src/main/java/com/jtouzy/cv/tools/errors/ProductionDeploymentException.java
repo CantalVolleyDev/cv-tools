@@ -1,6 +1,6 @@
-package com.jtouzy.cv.tools.deploy;
+package com.jtouzy.cv.tools.errors;
 
-public class ProductionDeploymentException extends Exception {
+public class ProductionDeploymentException extends ToolsException {
 	private static final long serialVersionUID = 1L;
 	
 	public ProductionDeploymentException(String message) {

@@ -18,6 +18,8 @@ import org.apache.maven.shared.invoker.MavenInvocationException;
 
 import com.jtouzy.utils.resources.ResourceUtils;
 import com.jtouzy.cv.tools.AbstractTool;
+import com.jtouzy.cv.tools.Commands;
+import com.jtouzy.cv.tools.errors.ProductionDeploymentException;
 import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.utils.ftp.FTPCli;
 import com.jtouzy.utils.ssh.SSHCli;
@@ -42,7 +44,13 @@ public class ProductionDeployment extends AbstractTool {
 	@Override
 	public void execute() 
 	throws ToolsException {
-		
+		if (getCommandLine().hasOption(Commands.DEPLOY_WEBAPP_OPTION)) {
+			try {
+				deployWebAPI();
+			} catch (IOException ex) {
+				throw new ToolsException(ex);
+			}
+		}
 	}
 	
 	private void deployWebAPI()
