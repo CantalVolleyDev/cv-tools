@@ -29,13 +29,19 @@ public class ProductionDeployment extends AbstractTool {
 	private static final String SSH_USER = "ssh.user";
 	private static final String SSH_PASSWORD = "ssh.password";
 	private static final String SSH_HOST = "ssh.host";
-	private static final String FTP_USER = "ftp.user";
-	private static final String FTP_PASSWORD = "ftp.password";
+	private static final String WEBAPI_FTP_USER = "webapi.ftp.user";
+	private static final String WEBAPI_FTP_PASSWORD = "webapi.ftp.password";
+	private static final String WEBAPP_FTP_USER = "webapp.ftp.user";
+	private static final String WEBAPP_FTP_PASSWORD = "webapp.ftp.password";
 	private static final String DAO_PROJECT_PATH = "project.dao";
 	private static final String MODEL_PROJECT_PATH = "project.model";
 	private static final String API_PROJECT_PATH = "project.api";
 	private static final String UTILS_PROJECT_PATH = "project.utils";
+	private static final String WEBAPP_PROJECT_PATH = "project.app";
+	private static final String WEBAPI_UPLOAD_PATH = "webapi.upload";
+	private static final String WEBAPP_UPLOAD_PATH = "webapp.upload";
 	private static final String MAVEN_HOME = "maven.home";
+	private Properties properties;
 	
 	public ProductionDeployment(CommandLine commandLine) {
 		super(commandLine);
@@ -44,12 +50,15 @@ public class ProductionDeployment extends AbstractTool {
 	@Override
 	public void execute() 
 	throws ToolsException {
-		if (getCommandLine().hasOption(Commands.DEPLOY_WEBAPP_OPTION)) {
-			try {
+		try {
+			this.properties = ResourceUtils.readProperties("tools");
+			if (getCommandLine().hasOption(Commands.DEPLOY_API_OPTION)) {
 				deployWebAPI();
-			} catch (IOException ex) {
-				throw new ToolsException(ex);
+			} else if (getCommandLine().hasOption(Commands.DEPLOY_WEBAPP_OPTION)) {
+				deployWebApp();
 			}
+		} catch (IOException ex) {
+			throw new ToolsException(ex);
 		}
 	}
 	
@@ -67,7 +76,6 @@ public class ProductionDeployment extends AbstractTool {
 			List<String> projects = Arrays.asList(
 				UTILS_PROJECT_PATH, DAO_PROJECT_PATH, MODEL_PROJECT_PATH, API_PROJECT_PATH
 			);
-			Properties properties = ResourceUtils.readProperties("tools");
 			InvocationRequest request;
 			Invoker invoker = new DefaultInvoker();
 			invoker.setMavenHome(new File(properties.getProperty(MAVEN_HOME)));
@@ -88,18 +96,20 @@ public class ProductionDeployment extends AbstractTool {
 	private void uploadWebAPIProject()
 	throws IOException {
 		logger.trace("Téléchargement des fichiers sur le serveur...");
-		Properties properties = ResourceUtils.readProperties("tools");
-		FTPCli.connect("5.135.146.110", properties.getProperty(FTP_USER), properties.getProperty(FTP_PASSWORD))
+		FTPCli.connect("5.135.146.110", properties.getProperty(WEBAPI_FTP_USER), properties.getProperty(WEBAPI_FTP_PASSWORD))
 		      .removeDirectory("/jto/temp/cvapi", false)
-		      .uploadDirectory("/Users/JTO/MavenProjects/cv-api/target/cvapi", "/jto/temp/cvapi")
+		      .uploadDirectory(getWebAPIUploadPath(), "/jto/temp/cvapi")
 		      .execute();
 		logger.trace("Téléchargement terminé.");
+	}
+	
+	private String getWebAPIUploadPath() {
+		return properties.getProperty(API_PROJECT_PATH) + properties.getProperty(WEBAPI_UPLOAD_PATH);
 	}
 	
 	private void tomcatDeployAndSave()
 	throws IOException {
 		logger.trace("Exécution des commandes sur le serveur...");
-		Properties properties = ResourceUtils.readProperties("tools");
 		SSHCli.connect(properties.getProperty(SSH_HOST), 
 				       properties.getProperty(SSH_USER), 
 				       properties.getProperty(SSH_PASSWORD))
@@ -107,5 +117,19 @@ public class ProductionDeployment extends AbstractTool {
 			  .useCommandsFromFile("tomcat-deploy.commands")
 			  .useOutputStream(System.out)
 			  .execute();
+	}
+	
+	private void deployWebApp()
+	throws IOException {
+		logger.trace("Téléchargement des fichiers sur le serveur...");
+		FTPCli.connect("ftp.cantalvolley.fr", properties.getProperty(WEBAPP_FTP_USER), properties.getProperty(WEBAPP_FTP_PASSWORD))
+		      .removeDirectory("/dvtweb1", false)
+		      .uploadDirectory(getWebAppUploadPath(), "/dvtweb1")
+		      .execute();
+		logger.trace("Téléchargement terminé.");
+	}
+	
+	private String getWebAppUploadPath() {
+		return properties.getProperty(WEBAPP_PROJECT_PATH) + properties.getProperty(WEBAPP_UPLOAD_PATH);
 	}
 }
