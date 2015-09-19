@@ -36,6 +36,7 @@ import com.jtouzy.cv.model.dao.MatchDAO;
 import com.jtouzy.cv.model.dao.NewsDAO;
 import com.jtouzy.cv.model.dao.SeasonDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamDAO;
+import com.jtouzy.cv.model.dao.SeasonTeamPlayerDAO;
 import com.jtouzy.cv.model.dao.TeamDAO;
 import com.jtouzy.cv.model.dao.UserDAO;
 import com.jtouzy.cv.tools.generate.DBGenerateTool;
@@ -59,7 +60,7 @@ public class XmlBackUtils {
 	private static Connection connection;
 	private static Multimap<TableContext, Object> values;
 	private static final List<String> tableList = Lists.newArrayList(
-		"usr", "sai", "cmp", "chp", "mat", "eqi", "eqs", "pma", "gym", "cmt", "ech", "wsem"
+		"usr", "sai", "cmp", "chp", "mat", "eqi", "eqs", "esj", "pma", "gym", "cmt", "ech", "wsem"
 	);
 	private static final List<String> excludeColumns = Lists.newArrayList(
 		"ufbcmp",
@@ -67,7 +68,8 @@ public class XmlBackUtils {
 		"etaeqi",
 		"gkeusr",
 		"grpech", "libech",
-		"libeqs"
+		"libeqs",
+		"cmpesj"
 	);
 	private static final Map<String, Integer> objectsSummary = new LinkedHashMap<>();
 	private static final Map<String, Integer> dataSummary = new LinkedHashMap<>();
@@ -335,6 +337,7 @@ public class XmlBackUtils {
 		daoClasses.put("gym", (Class<D>)GymDAO.class);
 		daoClasses.put("sai", (Class<D>)SeasonDAO.class);
 		daoClasses.put("eqs", (Class<D>)SeasonTeamDAO.class);
+		daoClasses.put("esj", (Class<D>)SeasonTeamPlayerDAO.class);
 		daoClasses.put("cmp", (Class<D>)CompetitionDAO.class);
 		daoClasses.put("chp", (Class<D>)ChampionshipDAO.class);
 		daoClasses.put("mat", (Class<D>)MatchDAO.class);
