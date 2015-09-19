@@ -1,7 +1,9 @@
 package com.jtouzy.cv.tools.deploy;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -54,7 +56,8 @@ public class ProductionDeployment extends AbstractTool {
 			this.properties = ResourceUtils.readProperties("tools");
 			if (getCommandLine().hasOption(Commands.DEPLOY_API_OPTION)) {
 				deployWebAPI();
-			} else if (getCommandLine().hasOption(Commands.DEPLOY_WEBAPP_OPTION)) {
+			} 
+			if (getCommandLine().hasOption(Commands.DEPLOY_WEBAPP_OPTION)) {
 				deployWebApp();
 			}
 		} catch (IOException ex) {
@@ -67,30 +70,12 @@ public class ProductionDeployment extends AbstractTool {
 		buildLocalProjects();
 		uploadWebAPIProject();
 		tomcatDeployAndSave();
+		fireFirstUrl();
 	}
 	
 	private void buildLocalProjects()
 	throws IOException {
-		try {
-			List<String> goals = Arrays.asList("clean","install");
-			List<String> projects = Arrays.asList(
-				UTILS_PROJECT_PATH, DAO_PROJECT_PATH, MODEL_PROJECT_PATH, API_PROJECT_PATH
-			);
-			InvocationRequest request;
-			Invoker invoker = new DefaultInvoker();
-			invoker.setMavenHome(new File(properties.getProperty(MAVEN_HOME)));
-			Iterator<String> it = projects.iterator();
-			String projectPathProperty;
-			while (it.hasNext()) {
-				projectPathProperty = it.next();
-				request = new DefaultInvocationRequest();
-				request.setPomFile(new File(properties.getProperty(projectPathProperty) + "/pom.xml"));
-				request.setGoals(goals);
-				invoker.execute(request);
-			}
-		} catch (MavenInvocationException ex) {
-			throw new IOException(ex);
-		}
+		launchMaven(UTILS_PROJECT_PATH, DAO_PROJECT_PATH, MODEL_PROJECT_PATH, API_PROJECT_PATH);
 	}
 	
 	private void uploadWebAPIProject()
@@ -110,16 +95,42 @@ public class ProductionDeployment extends AbstractTool {
 	private void tomcatDeployAndSave()
 	throws IOException {
 		logger.trace("Exécution des commandes sur le serveur...");
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		SSHCli.connect(properties.getProperty(SSH_HOST), 
 				       properties.getProperty(SSH_USER), 
 				       properties.getProperty(SSH_PASSWORD))
 			  .openChannel("shell")
 			  .useCommandsFromFile("tomcat-deploy.commands")
-			  .useOutputStream(System.out)
+			  .useOutputStream(baos)
 			  .execute();
+		logger.trace(new String(baos.toByteArray()));
+	}
+	
+	private void fireFirstUrl()
+	throws IOException {
+		try {
+			logger.trace("Attente...");
+			Thread.sleep(2000);
+		} catch (InterruptedException ex) {
+			throw new IOException(ex);
+		}
+		logger.trace("Première connexion à tomcat pour démarrer la servlet...");
+		new URL("http://5.135.146.110:8583/cvapi/news").openConnection().connect();
+	    logger.trace("Servlet démarrée.");
 	}
 	
 	private void deployWebApp()
+	throws IOException {
+		buildLocalWebappProjects();
+		uploadWebAppProject();
+	}
+	
+	private void buildLocalWebappProjects()
+	throws IOException {
+		launchMaven(WEBAPP_PROJECT_PATH);
+	}
+	
+	private void uploadWebAppProject()
 	throws IOException {
 		logger.trace("Téléchargement des fichiers sur le serveur...");
 		FTPCli.connect("ftp.cantalvolley.fr", properties.getProperty(WEBAPP_FTP_USER), properties.getProperty(WEBAPP_FTP_PASSWORD))
@@ -131,5 +142,27 @@ public class ProductionDeployment extends AbstractTool {
 	
 	private String getWebAppUploadPath() {
 		return properties.getProperty(WEBAPP_PROJECT_PATH) + properties.getProperty(WEBAPP_UPLOAD_PATH);
+	}
+	
+	private void launchMaven(String... paths)
+	throws IOException {
+		try {
+			List<String> goals = Arrays.asList("clean","install");
+			List<String> projects = Arrays.asList(paths);
+			InvocationRequest request;
+			Invoker invoker = new DefaultInvoker();
+			invoker.setMavenHome(new File(properties.getProperty(MAVEN_HOME)));
+			Iterator<String> it = projects.iterator();
+			String projectPathProperty;
+			while (it.hasNext()) {
+				projectPathProperty = it.next();
+				request = new DefaultInvocationRequest();
+				request.setPomFile(new File(properties.getProperty(projectPathProperty) + "/pom.xml"));
+				request.setGoals(goals);
+				invoker.execute(request);
+			}
+		} catch (MavenInvocationException ex) {
+			throw new IOException(ex);
+		}
 	}
 }
