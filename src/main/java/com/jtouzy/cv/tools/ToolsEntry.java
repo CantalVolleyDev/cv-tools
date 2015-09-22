@@ -10,6 +10,7 @@ import org.apache.commons.cli.ParseException;
 import com.jtouzy.cv.tools.deploy.ProductionDeployment;
 import com.jtouzy.cv.tools.errors.CLIException;
 import com.jtouzy.cv.tools.errors.ToolsException;
+import com.jtouzy.cv.tools.io.register.RegisterImport;
 
 public class ToolsEntry {
 	private CommandLine commandLine;
@@ -32,12 +33,19 @@ public class ToolsEntry {
 	
 	public Options createOptions() {
 		Options options = new Options();
+		// -- OPTION : Identifiant de l'outil
 		Option tool = new Option(Commands.TOOL_OPTION, "Outil à lancer");
 		tool.setRequired(true);
 		tool.setArgs(1);
 		options.addOption(tool);
+		// -- OPTION : -webapp
 		options.addOption(new Option(Commands.DEPLOY_WEBAPP_OPTION, "Déploiement webapp"));
+		// -- OPTION : -webapi
 		options.addOption(new Option(Commands.DEPLOY_API_OPTION, "Déploiement api"));
+		// -- OPTION : -fp
+		Option filePath = new Option(Commands.FILE_PATH, "Chemin de fichier");
+		filePath.setArgs(1);
+		options.addOption(filePath);
 		return options;
 	}
 	
@@ -58,6 +66,9 @@ public class ToolsEntry {
 		switch (tool) {
 			case DEPLOY:
 				executor = new ProductionDeployment(commandLine);
+				break;
+			case IMPORT_REGISTER:
+				executor = new RegisterImport(commandLine);
 				break;
 			default:
 				throw new CLIException("Outil non géré <" + tool + ">");
