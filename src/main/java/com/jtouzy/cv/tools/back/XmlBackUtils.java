@@ -33,6 +33,7 @@ import com.jtouzy.cv.model.dao.CommentDAO;
 import com.jtouzy.cv.model.dao.CompetitionDAO;
 import com.jtouzy.cv.model.dao.GymDAO;
 import com.jtouzy.cv.model.dao.MatchDAO;
+import com.jtouzy.cv.model.dao.MatchPlayerDAO;
 import com.jtouzy.cv.model.dao.NewsDAO;
 import com.jtouzy.cv.model.dao.SeasonDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamDAO;
@@ -341,6 +342,7 @@ public class XmlBackUtils {
 		daoClasses.put("cmp", (Class<D>)CompetitionDAO.class);
 		daoClasses.put("chp", (Class<D>)ChampionshipDAO.class);
 		daoClasses.put("mat", (Class<D>)MatchDAO.class);
+		daoClasses.put("pma", (Class<D>)MatchPlayerDAO.class); // Temporaire
 		daoClasses.put("cmt", (Class<D>)CommentDAO.class);
 		daoClasses.put("nws", (Class<D>)NewsDAO.class);
 		daoClasses.put("wsem", (Class<D>)ChampionshipWeeksDAO.class);
