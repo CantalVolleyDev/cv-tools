@@ -93,7 +93,8 @@ public class DBGenerateTool {
 					   .append(tableContext.getName())
 					   .append("_id')");
 				}
-			} else if (f.isRequired()) {
+			} 
+			if (f.isRequired()) {
 				sql.append(" not null");
 			}
 			if (f.isRelationColumn()) {
@@ -102,7 +103,7 @@ public class DBGenerateTool {
 			sql.append(",").append("\n");
 		});
 		sql.append("\t")
-		   .append("primary key (")
+		   .append("unique (")
 		   .append(idFields.stream()
 		                   .map(f -> f.getName())
 		                   .collect(Collectors.joining(",")))
