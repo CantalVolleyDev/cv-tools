@@ -5,3 +5,4 @@
 tomcat-deploy.commands
 tools.properties
 dbdump.xml
+importRegister.xml
