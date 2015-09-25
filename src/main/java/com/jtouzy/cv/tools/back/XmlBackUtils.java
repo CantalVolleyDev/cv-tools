@@ -65,7 +65,7 @@ public class XmlBackUtils {
 	);
 	private static final List<String> excludeColumns = Lists.newArrayList(
 		"ufbcmp",
-		"eqicmt", "notcmt",
+		"notcmt",
 		"etaeqi",
 		"gkeusr",
 		"grpech", "libech",
