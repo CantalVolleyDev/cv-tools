@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.jtouzy.cv.model.classes.ChampionshipWeeks;
 import com.jtouzy.cv.model.classes.Comment;
+import com.jtouzy.cv.model.classes.Match;
 import com.jtouzy.cv.model.classes.News;
 import com.jtouzy.cv.model.classes.SeasonTeam;
 import com.jtouzy.cv.model.classes.User;
@@ -388,6 +389,12 @@ public class XmlBackUtils {
 					Class<?> relationClass = columnContext.getFieldContext().getField().getType();
 					TableContext tableCtx = ModelContext.getTableContext(relationClass);
 					Map<Integer,Integer> equivalencesId = equivalences.row(tableCtx);
+					if (equivalencesId != null && equivalencesId.size() > 0) {
+						value = equivalencesId.get(ObjectUtils.getValue(object, columnContext));
+						ObjectUtils.setValue(object, columnContext, value);
+					}
+				} else if (object instanceof Comment && columnContext.getName().equals("valcmt")) {
+					Map<Integer,Integer> equivalencesId = equivalences.row(ModelContext.getTableContext(Match.class));
 					if (equivalencesId != null && equivalencesId.size() > 0) {
 						value = equivalencesId.get(ObjectUtils.getValue(object, columnContext));
 						ObjectUtils.setValue(object, columnContext, value);
