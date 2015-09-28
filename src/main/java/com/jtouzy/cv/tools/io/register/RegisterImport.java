@@ -174,7 +174,7 @@ public class RegisterImport extends AbstractTool {
 	
 	private Team retrieveTeam(String teamName)
 	throws QueryException, ToolsException {
-		List<Team> teams = this.teamDao.getTeamsByName(teamName);
+		List<Team> teams = this.teamDao.getAllByName(teamName);
 		if (teams.size() == 0)
 			return null;
 		if (teams.size() == 1)
@@ -228,7 +228,7 @@ public class RegisterImport extends AbstractTool {
 	
 	private User retrieveUser(String name, String firstName)
 	throws QueryException, ToolsException {
-		List<User> user = userDao.findByNames(name, firstName);
+		List<User> user = userDao.getAllByNames(name, firstName);
 		if (user.size() == 0)
 			return null;
 		if (user.size() == 1)
