@@ -15,6 +15,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
@@ -283,6 +284,21 @@ public class XmlBackUtils {
 				while (itObj.hasNext()) {
 					chw = (ChampionshipWeeks)itObj.next();
 					chw.setWeekDate(chw.getWeekDate().plusDays(1));
+				}
+			}
+			// ----------------------------------------------
+			// Traitement pour les users : Majuscules et minuscules
+			// ----------------------------------------------
+			else if (tableContext.getName().equals("usr")) {
+				itObj = values.get(tableContext).iterator();
+				User usr = null;
+				while (itObj.hasNext()) {
+					usr = (User)itObj.next();
+					usr.setName(usr.getName().toUpperCase());
+					usr.setFirstName(
+							CaseFormat.LOWER_UNDERSCORE.to(
+									CaseFormat.UPPER_CAMEL, 
+										usr.getFirstName().toLowerCase()));
 				}
 			}
 		}
