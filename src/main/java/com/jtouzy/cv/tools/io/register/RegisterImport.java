@@ -5,10 +5,14 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
@@ -23,11 +27,13 @@ import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.jtouzy.cv.model.classes.Gym;
 import com.jtouzy.cv.model.classes.Season;
 import com.jtouzy.cv.model.classes.SeasonTeam;
 import com.jtouzy.cv.model.classes.SeasonTeamPlayer;
 import com.jtouzy.cv.model.classes.Team;
 import com.jtouzy.cv.model.classes.User;
+import com.jtouzy.cv.model.dao.GymDAO;
 import com.jtouzy.cv.model.dao.SeasonDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamPlayerDAO;
@@ -62,6 +68,7 @@ public class RegisterImport extends AbstractTool {
 	private Element rootElement;
 	
 	private Season currentSeason;
+	private List<Gym> gymList;
 	private HashMap<String,Team> teamsByName;
 	private Multimap<String,User> usersByName;
 
@@ -140,6 +147,7 @@ public class RegisterImport extends AbstractTool {
 										    		 properties.getProperty("db.admin.password"));
 			connection.setAutoCommit(false);
 			this.currentSeason = getDAO(SeasonDAO.class).getCurrentSeason();
+			this.gymList = getDAO(GymDAO.class).getAll();
 			this.initXmlDocument();
 		} catch (DAOInstantiationException ex) {
 			throw new QueryException(ex);
@@ -239,9 +247,10 @@ public class RegisterImport extends AbstractTool {
 			throw new ToolsException("Un nom d'équipe est manquant sur l'élément [" + teamElement + "]");
 		if (Strings.isNullOrEmpty(gym))
 			throw new ToolsException("Gymnase non précisé pour l'équipe [" + name + "]");
+		else if (findGymById(gym) == null)
+			throw new ToolsException("Gymnase inexistant avec l'identifiant [" + gym + "]");
 		if (Strings.isNullOrEmpty(date))
 			throw new ToolsException("Date de match non précisée pour l'équipe [" + name + "]");
-		//FIXME: Contrôle de cohérence du gymnase + Date
 		Team team = new Team();
 		team.setLabel(name);
 		this.teamsFromXML.put(name.toUpperCase(), team);
@@ -291,7 +300,9 @@ public class RegisterImport extends AbstractTool {
 		user.setFirstName(firstName);
 		user.setName(name);
 		user.setAdministrator(false);
-		//user.setBirthDate(birthDate);
+		String birthDate = playerElement.getAttributeValue("date");
+		if (birthDate != null)
+			user.setBirthDate(LocalDate.parse(birthDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 		user.setMail(playerElement.getAttributeValue("mail"));
 		user.setPassword("");
 		user.setPhone(playerElement.getAttributeValue("tel"));
@@ -370,8 +381,8 @@ public class RegisterImport extends AbstractTool {
 				seasonTeam = new SeasonTeam();
 				seasonTeam.setSeason(this.currentSeason);
 				seasonTeam.setTeam(team);
-				//seasonTeam.setDate(date);
-				//seasonTeam.setGym(gym);
+				seasonTeam.setDate(LocalDateTime.parse(teamElement.getAttributeValue("date"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+				seasonTeam.setGym(findGymById(teamElement.getAttributeValue("gym")));
 				seasonTeam.setState(SeasonTeam.State.I);
 				seasonTeamDao.create(seasonTeam);
 				List<Element> playerElements = teamElement.getChildren("player");
@@ -389,6 +400,15 @@ public class RegisterImport extends AbstractTool {
 		} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
 			throw new ToolsException(ex);
 		}
+	}
+	
+	private Gym findGymById(final String id) {
+		Optional<Gym> opt = this.gymList.stream()
+				                        .filter(g -> g.getIdentifier().toString().equals(id))
+				                        .findFirst();
+		if (!opt.isPresent())
+			return null;
+		return opt.get();
 	}
 	
 	private void printXMLResult() {
