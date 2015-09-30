@@ -5,14 +5,12 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
@@ -24,9 +22,6 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.jtouzy.cv.model.classes.Gym;
 import com.jtouzy.cv.model.classes.Season;
 import com.jtouzy.cv.model.classes.SeasonTeam;
@@ -64,34 +59,92 @@ import com.jtouzy.utils.resources.ResourceUtils;
  * @author JTO
  */
 public class RegisterImport extends AbstractTool {
+	/**
+	 * Connexion à la base de données
+	 */
 	private Connection connection;
+	
+	/**
+	 * Element principal du fichier XML en entrée
+	 */
 	private Element rootElement;
+	/**
+	 * Est-ce qu'on lance le traitement en simulation ou non?
+	 */
+	private boolean simulation = false;
 	
+	/**
+	 * Saison principale dans laquelle on va insérer les données
+	 */
 	private Season currentSeason;
-	private List<Gym> gymList;
-	private HashMap<String,Team> teamsByName;
-	private Multimap<String,User> usersByName;
-
-	private HashMap<String,Team> teamsFromXML;
-	private Multimap<String,User> usersFromXML;
-	private Multimap<String,String> usersByTeamsFromXML;
+	/**
+	 * Liste des équipes déjà existantes indexées par leurs ID
+	 */
+	private HashMap<Integer,Team> teamsById;
+	/**
+	 * Liste des joueurs déjà existants indexés par leurs ID
+	 */
+	private HashMap<Integer,User> usersById;
+	/**
+	 * Liste des gymnases existants indexés par leurs ID
+	 */
+	private HashMap<Integer,Gym> gymsById;
 	
+	/**
+	 * Liste des nouveaux utilisateurs à créer
+	 */
 	private List<User> usersToCreate;
+	/**
+	 * Liste des utilisateurs participants déjà existants
+	 */
 	private List<User> existingUsers;
+	/**
+	 * Liste des nouvelles équipes à créer
+	 */
 	private List<Team> teamsToCreate;
+	/**
+	 * Liste des équipes participantes déjà existantes
+	 */
 	private List<Team> existingTeams;
-	
+	/**
+	 * Liste des équipes/saison à créer
+	 */
+	private List<SeasonTeam> seasonTeamsToCreate;
+	/**
+	 * Liste des équipes/saison/joueurs à créer
+	 */
+	private List<SeasonTeamPlayer> seasonTeamPlayersToCreate;
+	/**
+	 * Logger de l'outil
+	 */
 	private static final Logger logger = LogManager.getLogger(RegisterImport.class);
 	
+	/**
+	 * Constructeur
+	 * @param commandLine Informations sur la ligne de commande lancée
+	 */
 	public RegisterImport(CommandLine commandLine) {
 		super(commandLine);
 	}
 	
+	/**
+	 * Récupération d'un DAO par sa classe
+	 * @param daoClass Classe du DAO demandée
+	 * @return Instance du DAO
+	 * @throws DAOInstantiationException Si problème dans l'instanciation du DAO
+	 */
 	private <D extends DAO<T>,T> D getDAO(Class<D> daoClass)
 	throws DAOInstantiationException {
 		return DAOManager.getDAO(this.connection, daoClass);
 	}
 	
+	/**
+	 * Exécution générale de l'outil
+	 * - Lecture du fichier XML
+	 * - Intégration des nouvelles équipes et nouveaux joueurs
+	 * - Intégration des équipes/saison et équipes/saison/championnat
+	 * @throws ToolsException Si un problème survient pendant l'exécution
+	 */
 	@Override
 	public void execute() 
 	throws ToolsException {
@@ -99,19 +152,13 @@ public class RegisterImport extends AbstractTool {
 			throw new ToolsException("Chemin du fichier obligatoire avec le paramètre \"-file\"");
 		}
 		try {
-			boolean isSimulation = getCommandLine().hasOption(Commands.SIMULATION); 
+			this.simulation = getCommandLine().hasOption(Commands.SIMULATION); 
 			this.initializeContext();
 			this.searchOldData();
 			this.loadXMLData();
-			this.printXMLResult();
-			this.markDataToCreate();
 			this.printDataToCreate();
-			if (!isSimulation) {
-				this.createBaseData();
-				this.createSeasonData();
-				this.connection.commit();
-				this.connection.close();
-			}
+			this.connection.commit();
+			this.connection.close();
 		} catch (IOException | ModelClassDefinitionException | SQLException | QueryException ex) {
 			if (this.connection != null) {
 				try {
@@ -133,6 +180,13 @@ public class RegisterImport extends AbstractTool {
 		}
 	}
 
+	/**
+	 * Initialisation du contexte de l'outil
+	 * @throws IOException 
+	 * @throws ModelClassDefinitionException
+	 * @throws SQLException
+	 * @throws QueryException
+	 */
 	private void initializeContext()
 	throws IOException, ModelClassDefinitionException, SQLException, QueryException {
 		try {
@@ -147,13 +201,22 @@ public class RegisterImport extends AbstractTool {
 										    		 properties.getProperty("db.admin.password"));
 			connection.setAutoCommit(false);
 			this.currentSeason = getDAO(SeasonDAO.class).getCurrentSeason();
-			this.gymList = getDAO(GymDAO.class).getAll();
 			this.initXmlDocument();
+			this.existingTeams = new ArrayList<>();
+			this.existingUsers = new ArrayList<>();
+			this.usersToCreate = new ArrayList<>();
+			this.teamsToCreate = new ArrayList<>();
+			this.seasonTeamsToCreate = new ArrayList<>();
+			this.seasonTeamPlayersToCreate = new ArrayList<>();
 		} catch (DAOInstantiationException ex) {
 			throw new QueryException(ex);
 		}
 	}
 	
+	/**
+	 * Recherche de l'élément racine du document XML
+	 * @throws IOException
+	 */
 	private void initXmlDocument()
 	throws IOException {
 		try {
@@ -166,68 +229,85 @@ public class RegisterImport extends AbstractTool {
 		}
 	}
 	
+	/**
+	 * Recherche des données existantes en base de données
+	 * @throws QueryException Si problème dans la recherche des données
+	 */
 	private void searchOldData()
 	throws QueryException {
 		logger.trace("Recherche des équipes et utilisateurs existants...");
 		this.searchUsers();
 		this.searchTeams();
+		this.searchGyms();
 	}
 	
+	/**
+	 * Recherche des utilisateurs déjà existant dans la base
+	 * @throws QueryException Si problème dans la recherche des données
+	 */
 	private void searchUsers()
 	throws QueryException {
 		try {
-			this.usersByName = HashMultimap.create();
+			this.usersById = new HashMap<>();
 			List<User> users = getDAO(UserDAO.class).getAll();
 			Iterator<User> itu = users.iterator();
 			User user;
 			while (itu.hasNext()) {
 				user = itu.next();
-				this.usersByName.put(getUserFullName(user), user);
+				this.usersById.put(user.getIdentifier(), user);
 			}
 		} catch (DAOInstantiationException ex) {
 			throw new QueryException(ex);
 		}
 	}
 	
-	private final String getUserFullName(User user) {
-		return new StringBuilder().append(user.getName().toUpperCase())
-                                  .append(" ")
-                                  .append(user.getFirstName().toUpperCase())
-                                  .toString();
-	}
-	
-	private final String getUserFullName(Element userElement) {
-		return new StringBuilder().append(userElement.getAttributeValue("name").toUpperCase())
-				                  .append(" ")
-				                  .append(userElement.getAttributeValue("firstName").toUpperCase())
-				                  .toString();
-	}
-	
+	/**
+	 * Recherche des équipes déjà existantes dans la base
+	 * @throws QueryException Si problème dans la recherche des données
+	 */
 	private void searchTeams()
 	throws QueryException {
 		try {
-			this.teamsByName = new HashMap<>();
+			this.teamsById = new HashMap<>();
 			List<Team> teams = getDAO(TeamDAO.class).getAll();
 			Iterator<Team> itt = teams.iterator();
 			Team team;
-			String fullName;
 			while (itt.hasNext()) {
 				team = itt.next();
-				fullName = new StringBuilder().append(team.getLabel().toUpperCase())
-						                      .toString();
-				this.teamsByName.put(fullName, team);
+				this.teamsById.put(team.getIdentifier(), team);
 			}
 		} catch (DAOInstantiationException ex) {
 			throw new QueryException(ex);
 		}
 	}
 	
+	/**
+	 * Recherche des gymnases dans la base
+	 * @throws QueryException Si problème dans la recherche des données
+	 */
+	private void searchGyms()
+	throws QueryException {
+		try {
+			this.gymsById = new HashMap<>();
+			List<Gym> gyms = getDAO(GymDAO.class).getAll();
+			Iterator<Gym> itt = gyms.iterator();
+			Gym gym;
+			while (itt.hasNext()) {
+				gym = itt.next();
+				this.gymsById.put(gym.getIdentifier(), gym);
+			}
+		} catch (DAOInstantiationException ex) {
+			throw new QueryException(ex);
+		}
+	}
+	
+	/**
+	 * Initialisation du chargement des données depuis le XML
+	 * @throws ToolsException Si problème levé pendant le chargement des données
+	 */
 	private void loadXMLData()
 	throws ToolsException {
 		logger.trace("Chargement des données depuis le fichier XML...");
-		this.teamsFromXML = new HashMap<>();
-		this.usersFromXML = HashMultimap.create();
-		this.usersByTeamsFromXML = HashMultimap.create();
 		
 		List<Element> teamElements = rootElement.getChildren("team");
 		Iterator<Element> itt = teamElements.iterator();
@@ -238,25 +318,79 @@ public class RegisterImport extends AbstractTool {
 		}
 	}
 	
+	/**
+	 * Création/recherche d'une équipe + Création équipe/saison à partir d'un noeud XML
+	 * @param teamElement Element XML représentant l'équipe
+	 * @throws ToolsException Si problème levé pendant le chargement des données
+	 */
 	private void buildTeamWithXML(Element teamElement)
 	throws ToolsException {
-		String name = teamElement.getAttributeValue("name"),
-				gym = teamElement.getAttributeValue("gym"),
+		String id = teamElement.getAttributeValue("id");
+		Team team;
+		String name;
+		boolean teamToCreate = false;
+		if (id != null) {
+			team = this.teamsById.get(Integer.parseInt(id));
+			if (team == null) {
+				throw new ToolsException("L'identifiant " + id + " ne correspond pas à une équipe");
+			}
+			this.existingTeams.add(team);
+			name = team.getLabel();
+		} else {
+			team = new Team();
+			teamToCreate = true;
+			this.teamsToCreate.add(team);
+			name = teamElement.getAttributeValue("name");
+			if (Strings.isNullOrEmpty(name))
+				throw new ToolsException("Un nom d'équipe est manquant sur un élément");
+		}
+		
+		String gym = teamElement.getAttributeValue("gym"),
 			   date = teamElement.getAttributeValue("date");
-		if (Strings.isNullOrEmpty(name))
-			throw new ToolsException("Un nom d'équipe est manquant sur l'élément [" + teamElement + "]");
+		Gym gymObj;
 		if (Strings.isNullOrEmpty(gym))
 			throw new ToolsException("Gymnase non précisé pour l'équipe [" + name + "]");
-		else if (findGymById(gym) == null)
-			throw new ToolsException("Gymnase inexistant avec l'identifiant [" + gym + "]");
+		else {
+			gymObj = this.gymsById.get(Integer.parseInt(gym));
+			if (gymObj == null)
+				throw new ToolsException("Gymnase inexistant avec l'identifiant [" + gym + "]");
+		}
 		if (Strings.isNullOrEmpty(date))
 			throw new ToolsException("Date de match non précisée pour l'équipe [" + name + "]");
-		Team team = new Team();
-		team.setLabel(name);
-		this.teamsFromXML.put(name.toUpperCase(), team);
+		
+		if (teamToCreate && !simulation) {
+			try {
+				Team newTeam = getDAO(TeamDAO.class).create(team);
+				team.setIdentifier(newTeam.getIdentifier());
+			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+				throw new ToolsException(ex);
+			}
+		}
+		
+		SeasonTeam seasonTeam = new SeasonTeam();
+		seasonTeam.setGym(gymObj);
+		seasonTeam.setDate(LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+		seasonTeam.setSeason(this.currentSeason);
+		seasonTeam.setState(SeasonTeam.State.I);
+		seasonTeam.setTeam(team);
+		this.seasonTeamsToCreate.add(seasonTeam);
+		if (!simulation) {
+			try {
+				getDAO(SeasonTeamDAO.class).create(seasonTeam);
+			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+				throw new ToolsException(ex);
+			}
+		}
+		
 		buildPlayersWithTeamXML(team, teamElement);
 	}
 	
+	/**
+	 * Création/recherche des joueurs + Création équipe/saison/joueur à partir d'un noeud XML
+	 * @param team Equipe concernée pour le joueur
+	 * @param teamElement Element XML représentant l'équipe
+	 * @throws ToolsException Si problème levé pendant le chargement des données
+	 */
 	private void buildPlayersWithTeamXML(Team team, Element teamElement)
 	throws ToolsException {
 		List<Element> playerElements = teamElement.getChildren("player");
@@ -279,171 +413,125 @@ public class RegisterImport extends AbstractTool {
 			throw new ToolsException("L'équipe [" + teamElement.getAttributeValue("name") + "] ne possède aucun responsable");
 	}
 	
+	/**
+	 * Création/recherche d'un joueur + Création équipe/saison/joueur à partir d'un noeud XML
+	 * @param team Equipe concernée pour le joueur
+	 * @param playerElement Element XML représentant le joueur
+	 * @throws ToolsException Si problème levé pendant le chargement des données
+	 */
 	private boolean buildPlayerWithXML(Team team, Element playerElement)
 	throws ToolsException {
 		boolean managerFlag = false;
-		String name = playerElement.getAttributeValue("name"),
-			   firstName = playerElement.getAttributeValue("firstName"),
-			   manager = playerElement.getAttributeValue("manager"),
-			   mail = playerElement.getAttributeValue("mail");
-		if (Strings.isNullOrEmpty(name))
-			throw new ToolsException("Le nom du joueur doit être renseigné sur l'élément, dans l'équipe [" + team.getLabel() + "]");
-		if (Strings.isNullOrEmpty(firstName))
-			throw new ToolsException("Le prénom du joueur doit être renseigné sur l'élément, dans l'équipe [" + team.getLabel() + "]");
-		if (manager != null && manager.equals("true")) {
-			managerFlag = true;
-			if (mail == null) {
-				throw new ToolsException("Le responsable d'équipe doit avoir un mail! Dans l'équipe [" + team.getLabel() + "]");
+		String id = playerElement.getAttributeValue("id");
+		User user;
+		boolean userToCreate = false;
+		if (id != null) {
+			user = this.usersById.get(Integer.parseInt(id));
+			if (user == null) {
+				throw new ToolsException("L'identifiant " + id + " ne correspond pas à un joueur");
 			}
+			this.existingUsers.add(user);
+		} else {
+			user = new User();
+			this.usersToCreate.add(user);
+			userToCreate = true;
+			String name = playerElement.getAttributeValue("name"), 
+				   firstName = playerElement.getAttributeValue("firstName");
+			if (Strings.isNullOrEmpty(name))
+				throw new ToolsException("Le nom du joueur doit être renseigné sur l'élément, dans l'équipe [" + team.getLabel() + "]");
+			if (Strings.isNullOrEmpty(firstName))
+				throw new ToolsException("Le prénom du joueur doit être renseigné sur l'élément, dans l'équipe [" + team.getLabel() + "]");
+			user.setName(name);
+			user.setFirstName(firstName);
+		}
+		
+		String manager = playerElement.getAttributeValue("manager"),
+			   mail = playerElement.getAttributeValue("mail"),
+			   tel = playerElement.getAttributeValue("tel");
+
+		if (manager != null && manager.equals("true")) {
+			if (userToCreate) {
+				if (mail == null) 
+					throw new ToolsException("Le responsable d'équipe doit avoir un mail! Dans l'équipe [" + team.getLabel() + "]");
+			} else {
+				mail = mail != null ? mail : user.getMail();
+				if (mail == null)
+					throw new ToolsException("Le responsable d'équipe doit avoir un mail! Dans l'équipe [" + team.getLabel() + "]");
+			}
+			managerFlag = true;
 		}		
-		User user = new User();
-		user.setFirstName(firstName);
-		user.setName(name);
-		user.setAdministrator(false);
-		String birthDate = playerElement.getAttributeValue("date");
-		if (birthDate != null)
-			user.setBirthDate(LocalDate.parse(birthDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-		user.setMail(playerElement.getAttributeValue("mail"));
-		user.setPassword("");
-		user.setPhone(playerElement.getAttributeValue("tel"));
-		String fullName = getUserFullName(user);
-		this.usersFromXML.put(fullName, user);
-		this.usersByTeamsFromXML.put(team.getLabel().toUpperCase(), fullName);
+		
+		if (mail != null) {
+			user.setMail(mail);
+		}
+		if (userToCreate) {
+			user.setAdministrator(false);
+			user.setPassword("");
+		}
+		if (tel != null) {
+			user.setPhone(tel);
+		}
+		
+		if (!simulation) {
+			try {
+				if (userToCreate) {
+					User newUser = getDAO(UserDAO.class).create(user);
+					user.setIdentifier(newUser.getIdentifier());
+				} else {
+					getDAO(UserDAO.class).update(user);
+				}
+			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+				throw new ToolsException(ex);
+			}
+		}
+		
+		SeasonTeamPlayer stp = new SeasonTeamPlayer();
+		stp.setManager(managerFlag);
+		stp.setPlayer(user);
+		stp.setTeam(team);
+		stp.setSeason(this.currentSeason);
+		this.seasonTeamPlayersToCreate.add(stp);
+		if (!simulation) {
+			try {
+				getDAO(SeasonTeamPlayerDAO.class).create(stp);
+			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+				throw new ToolsException(ex);
+			}
+		}
 		return managerFlag;
 	}
 	
-	private void markDataToCreate()
-	throws ToolsException {
-		this.usersToCreate = new ArrayList<>();
-		this.teamsToCreate = new ArrayList<>();
-		this.existingTeams = new ArrayList<>();
-		this.existingUsers = new ArrayList<>();
-		
-		Iterator<String> itu = this.usersFromXML.keySet().iterator();
-		String fullName;
-		while (itu.hasNext()) {
-			fullName = itu.next();
-			if (!this.usersByName.containsKey(fullName)) {
-				this.usersToCreate.add(Lists.newArrayList(this.usersFromXML.get(fullName)).get(0));
-			} else {
-				this.existingUsers.add(Lists.newArrayList(this.usersFromXML.get(fullName)).get(0));
-			}
-		}
-		itu = this.teamsFromXML.keySet().iterator();
-		while (itu.hasNext()) {
-			fullName = itu.next();
-			if (!this.teamsByName.containsKey(fullName)) {
-				this.teamsToCreate.add(this.teamsFromXML.get(fullName));
-			} else {
-				this.existingTeams.add(this.teamsFromXML.get(fullName));
-			}
-		}
-	}
-	
-	private void createBaseData()
-	throws ToolsException {
-		try {
-			TeamDAO teamDao = getDAO(TeamDAO.class);
-			Iterator<Team> itt = this.teamsToCreate.iterator();
-			Team team, newTeam;
-			while (itt.hasNext()) {
-				team = itt.next();
-				newTeam = teamDao.create(team);
-				team.setIdentifier(newTeam.getIdentifier());
-			}
-			UserDAO userDao = getDAO(UserDAO.class);
-			Iterator<User> itu = this.usersToCreate.iterator();
-			User user, newUser;
-			while (itu.hasNext()) {
-				user = itu.next();
-				newUser = userDao.create(user);
-				user.setIdentifier(newUser.getIdentifier());
-			}
-		} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
-			throw new ToolsException(ex);
-		}
-	}
-	
-	private void createSeasonData()
-	throws ToolsException {
-		try {
-			Team team;
-			SeasonTeam seasonTeam;
-			SeasonTeamDAO seasonTeamDao = getDAO(SeasonTeamDAO.class);
-			SeasonTeamPlayer seasonTeamPlayer;
-			SeasonTeamPlayerDAO seasonTeamPlayerDao = getDAO(SeasonTeamPlayerDAO.class);
-			List<Element> teamElements = rootElement.getChildren("team");
-			Iterator<Element> itx = teamElements.iterator();
-			Element teamElement;
-			while (itx.hasNext()) {
-				teamElement = itx.next();
-				team = this.teamsFromXML.get(teamElement.getAttributeValue("name").toUpperCase());
-				seasonTeam = new SeasonTeam();
-				seasonTeam.setSeason(this.currentSeason);
-				seasonTeam.setTeam(team);
-				seasonTeam.setDate(LocalDateTime.parse(teamElement.getAttributeValue("date"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-				seasonTeam.setGym(findGymById(teamElement.getAttributeValue("gym")));
-				seasonTeam.setState(SeasonTeam.State.I);
-				seasonTeamDao.create(seasonTeam);
-				List<Element> playerElements = teamElement.getChildren("player");
-				Iterator<Element> itp = playerElements.iterator();
-				Element playerElement;
-				while (itp.hasNext()) {
-					playerElement = itp.next();
-					seasonTeamPlayer = new SeasonTeamPlayer();
-					seasonTeamPlayer.setPlayer(Lists.newArrayList(this.usersFromXML.get(getUserFullName(playerElement))).get(0));
-					seasonTeamPlayer.setSeason(this.currentSeason);
-					seasonTeamPlayer.setTeam(team);
-					seasonTeamPlayerDao.create(seasonTeamPlayer);
-				}
-			}
-		} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
-			throw new ToolsException(ex);
-		}
-	}
-	
-	private Gym findGymById(final String id) {
-		Optional<Gym> opt = this.gymList.stream()
-				                        .filter(g -> g.getIdentifier().toString().equals(id))
-				                        .findFirst();
-		if (!opt.isPresent())
-			return null;
-		return opt.get();
-	}
-	
-	private void printXMLResult() {
-		logger.trace("----------------------------------------");
-		logger.trace("Résultat du traitement du fichier XML : ");
-		logger.trace("----------------------------------------");
-		logger.trace("LISTE DES EQUIPES (" + this.teamsFromXML.size() + ")");
-		this.teamsFromXML.entrySet().forEach(t -> {
-			logger.trace("Equipe : " + t.getValue().getLabel());
-		});
-		logger.trace("LISTE DES UTILISATEURS (" + this.usersFromXML.size() + ")");
-		this.usersFromXML.entries().forEach(u -> {
-			logger.trace("Utilisateur : " + u.getValue().getFirstName() + " " + u.getValue().getName());
-		});
-	}
-	
+	/**
+	 * Affichage du résultat dans le logger
+	 * Affiché à chaque fois, même en simulation pour visualiser le résultat éventuel
+	 */
 	private void printDataToCreate() {
 		logger.trace("----------------------------------------");
 		logger.trace("Résultat de la création/existence :     ");
 		logger.trace("----------------------------------------");
-		logger.trace("LISTE DES EQUIPES A CREER (" + this.teamsToCreate.size() + "/" + this.teamsFromXML.size() + ")");
+		logger.trace("LISTE DES EQUIPES A CREER (" + this.teamsToCreate.size() + ")");
 		this.teamsToCreate.forEach(t -> {
 			logger.trace("Equipe : " + t.getLabel());
 		});
-		logger.trace("LISTE DES UTILISATEURS A CREER (" + this.usersToCreate.size() + "/" + this.usersFromXML.size() + ")");
+		logger.trace("LISTE DES UTILISATEURS A CREER (" + this.usersToCreate.size() + ")");
 		this.usersToCreate.forEach(t -> {
 			logger.trace("Utilisateur : " + t.getFirstName() + " " + t.getName());
 		});
-		logger.trace("LISTE DES EQUIPES EXISTANTES ENREGISTREES (" + this.existingTeams.size() + "/" + this.teamsFromXML.size() + ")");
+		logger.trace("LISTE DES EQUIPES EXISTANTES ENREGISTREES (" + this.existingTeams.size() + ")");
 		this.existingTeams.forEach(t -> {
 			logger.trace("Equipe : " + t.getLabel());
 		});
-		logger.trace("LISTE DES UTILISATEURS EXISTANTS ENREGISTRES (" + this.existingUsers.size() + "/" + this.usersFromXML.size() + ")");
+		logger.trace("LISTE DES UTILISATEURS EXISTANTS ENREGISTRES (" + this.existingUsers.size() + ")");
 		this.existingUsers.forEach(t -> {
 			logger.trace("Utilisateur : " + t.getFirstName() + " " + t.getName());
+		});
+		logger.trace("LISTE DES EQUIPES/SAISON A CREER (" + this.seasonTeamsToCreate.size() + ")");
+		this.seasonTeamsToCreate.forEach(t -> {
+			logger.trace("Equipe/Saison : " + t.getTeam().getLabel() + " / " + t.getGym().getLabel() + " / " + t.getDate().format(DateTimeFormatter.ofPattern("EEEE HH:mm")));
+		});
+		logger.trace("LISTE DES EQUIPES/SAISON/JOUEUR A CREER (" + this.seasonTeamPlayersToCreate.size() + ")");
+		this.seasonTeamPlayersToCreate.forEach(t -> {
+			logger.trace("Equipe/Saison/Joueur : " + t.getTeam().getLabel() + " / " + t.getPlayer().getName() + " / " + t.getPlayer().getFirstName());
 		});
 	}
 }
