@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
@@ -61,10 +60,6 @@ import com.jtouzy.utils.resources.ResourceUtils;
 public class RegisterImport extends AbstractTool {
 	private Connection connection;
 	private Element rootElement;
-	/*private TeamDAO teamDao;
-	private SeasonTeamDAO stDao;
-	private UserDAO userDao;
-	private Season currentSeason;*/
 	
 	private Season currentSeason;
 	private HashMap<String,Team> teamsByName;
@@ -107,8 +102,6 @@ public class RegisterImport extends AbstractTool {
 			if (!isSimulation) {
 				this.createBaseData();
 				this.createSeasonData();
-			}
-			if (!isSimulation) {
 				this.connection.commit();
 				this.connection.close();
 			}
@@ -239,16 +232,19 @@ public class RegisterImport extends AbstractTool {
 	
 	private void buildTeamWithXML(Element teamElement)
 	throws ToolsException {
-		String name = teamElement.getAttributeValue("name");
+		String name = teamElement.getAttributeValue("name"),
+				gym = teamElement.getAttributeValue("gym"),
+			   date = teamElement.getAttributeValue("date");
 		if (Strings.isNullOrEmpty(name))
 			throw new ToolsException("Un nom d'équipe est manquant sur l'élément [" + teamElement + "]");
+		if (Strings.isNullOrEmpty(gym))
+			throw new ToolsException("Gymnase non précisé pour l'équipe [" + name + "]");
+		if (Strings.isNullOrEmpty(date))
+			throw new ToolsException("Date de match non précisée pour l'équipe [" + name + "]");
+		//FIXME: Contrôle de cohérence du gymnase + Date
 		Team team = new Team();
 		team.setLabel(name);
 		this.teamsFromXML.put(name.toUpperCase(), team);
-		/*SeasonTeam seasonTeam = new SeasonTeam();
-		seasonTeam.setTeam(team);
-		seasonTeam.setSeason(currentSeason);
-		this.seasonTeamFromXML.add(seasonTeam);*/
 		buildPlayersWithTeamXML(team, teamElement);
 	}
 	
@@ -259,32 +255,50 @@ public class RegisterImport extends AbstractTool {
 			throw new ToolsException("Aucun joueur enregistré pour l'équipe [" + teamElement.getAttributeValue("name") + "]");
 		Iterator<Element> itp = playerElements.iterator();
 		Element playerElement;
+		boolean managerFlag = false,
+				currentManagerFlag = false;
 		while (itp.hasNext()) {
 			playerElement = itp.next();
-			buildPlayerWithXML(team, playerElement);
+			currentManagerFlag = buildPlayerWithXML(team, playerElement);
+			if (currentManagerFlag) {
+				if (managerFlag)
+					throw new ToolsException("L'équipe [" + teamElement.getAttributeValue("name") + "] possède plusieurs responsables");
+				managerFlag = currentManagerFlag;
+			}
 		}
+		if (!managerFlag)
+			throw new ToolsException("L'équipe [" + teamElement.getAttributeValue("name") + "] ne possède aucun responsable");
 	}
 	
-	private void buildPlayerWithXML(Team team, Element playerElement)
+	private boolean buildPlayerWithXML(Team team, Element playerElement)
 	throws ToolsException {
+		boolean managerFlag = false;
 		String name = playerElement.getAttributeValue("name"),
-			   firstName = playerElement.getAttributeValue("firstName");
+			   firstName = playerElement.getAttributeValue("firstName"),
+			   manager = playerElement.getAttributeValue("manager"),
+			   mail = playerElement.getAttributeValue("mail");
 		if (Strings.isNullOrEmpty(name))
-			throw new ToolsException("Le nom du joueur doit être renseigné sur l'élément [" + playerElement + "]");
+			throw new ToolsException("Le nom du joueur doit être renseigné sur l'élément, dans l'équipe [" + team.getLabel() + "]");
 		if (Strings.isNullOrEmpty(firstName))
-			throw new ToolsException("Le prénom du joueur doit être renseigné sur l'élément [" + playerElement + "]");
+			throw new ToolsException("Le prénom du joueur doit être renseigné sur l'élément, dans l'équipe [" + team.getLabel() + "]");
+		if (manager != null && manager.equals("true")) {
+			managerFlag = true;
+			if (mail == null) {
+				throw new ToolsException("Le responsable d'équipe doit avoir un mail! Dans l'équipe [" + team.getLabel() + "]");
+			}
+		}		
 		User user = new User();
 		user.setFirstName(firstName);
 		user.setName(name);
+		user.setAdministrator(false);
+		//user.setBirthDate(birthDate);
+		user.setMail(playerElement.getAttributeValue("mail"));
+		user.setPassword("");
+		user.setPhone(playerElement.getAttributeValue("tel"));
 		String fullName = getUserFullName(user);
 		this.usersFromXML.put(fullName, user);
 		this.usersByTeamsFromXML.put(team.getLabel().toUpperCase(), fullName);
-		/*SeasonTeamPlayer player = new SeasonTeamPlayer();
-		player.setPlayer(user);
-		player.setSeason(currentSeason);
-		player.setTeam(team);
-		//FIXME : Vérifier les données existante si le joueur existe déjà dans une autre équipe
-		this.seasonTeamPlayerFromXML.add(player);*/
+		return managerFlag;
 	}
 	
 	private void markDataToCreate()
@@ -342,21 +356,9 @@ public class RegisterImport extends AbstractTool {
 	private void createSeasonData()
 	throws ToolsException {
 		try {
-			Iterator<Team> itt = this.teamsFromXML.values().iterator();
 			Team team;
 			SeasonTeam seasonTeam;
 			SeasonTeamDAO seasonTeamDao = getDAO(SeasonTeamDAO.class);
-			while (itt.hasNext()) {
-				team = itt.next();
-				seasonTeam = new SeasonTeam();
-				seasonTeam.setSeason(this.currentSeason);
-				seasonTeam.setTeam(team);
-				//seasonTeam.setDate(date);
-				//seasonTeam.setGym(gym);
-				seasonTeam.setState(SeasonTeam.State.I);
-				seasonTeamDao.create(seasonTeam);
-			}
-			
 			SeasonTeamPlayer seasonTeamPlayer;
 			SeasonTeamPlayerDAO seasonTeamPlayerDao = getDAO(SeasonTeamPlayerDAO.class);
 			List<Element> teamElements = rootElement.getChildren("team");
@@ -365,6 +367,13 @@ public class RegisterImport extends AbstractTool {
 			while (itx.hasNext()) {
 				teamElement = itx.next();
 				team = this.teamsFromXML.get(teamElement.getAttributeValue("name").toUpperCase());
+				seasonTeam = new SeasonTeam();
+				seasonTeam.setSeason(this.currentSeason);
+				seasonTeam.setTeam(team);
+				//seasonTeam.setDate(date);
+				//seasonTeam.setGym(gym);
+				seasonTeam.setState(SeasonTeam.State.I);
+				seasonTeamDao.create(seasonTeam);
 				List<Element> playerElements = teamElement.getChildren("player");
 				Iterator<Element> itp = playerElements.iterator();
 				Element playerElement;
@@ -394,14 +403,6 @@ public class RegisterImport extends AbstractTool {
 		this.usersFromXML.entries().forEach(u -> {
 			logger.trace("Utilisateur : " + u.getValue().getFirstName() + " " + u.getValue().getName());
 		});
-		/*logger.trace("LISTE DES EQUIPES/SAISONS (" + this.seasonTeamFromXML.size() + ")");
-		this.seasonTeamFromXML.forEach(st -> {
-			logger.trace("Equipe/Saison : " + st.getTeam().getLabel());
-		});
-		logger.trace("LISTE DES EQUIPES/SAISONS/JOUEUR (" + this.seasonTeamPlayerFromXML.size() + ")");
-		this.seasonTeamPlayerFromXML.forEach(stp -> {
-			logger.trace("Equipe/Saison/Joueur : " + stp.getTeam().getLabel() + " / " + stp.getPlayer().getFirstName() + " " + stp.getPlayer().getName());
-		});*/
 	}
 	
 	private void printDataToCreate() {
@@ -425,128 +426,4 @@ public class RegisterImport extends AbstractTool {
 			logger.trace("Utilisateur : " + t.getFirstName() + " " + t.getName());
 		});
 	}
-	
-	/*private void init()
-	throws IOException, ModelClassDefinitionException, SQLException, DAOInstantiationException, QueryException {
-		logger.trace("Initialisation du contexte : Properties, classes modèles, connexion SGBD, racine du fichier XML...");
-		Properties properties = ResourceUtils.readProperties("tools");
-		DAOManager.init("com.jtouzy.cv.model.classes");
-		initXmlDocument();
-
-		this.currentSeason = getDAO(SeasonDAO.class).getCurrentSeason();
-		this.stDao = getDAO(SeasonTeamDAO.class);
-		this.teamDao = getDAO(TeamDAO.class);
-		this.userDao = getDAO(UserDAO.class);
-	}*/
-	
-	/*private void loadData()
-	throws QueryException, ToolsException, DAOCrudException, SQLException, DAOInstantiationException {
-		List<Element> teamElements = rootElement.getChildren("team");
-		Iterator<Element> it = teamElements.iterator();
-		Element element;
-		String teamName;
-		Team team;
-		while (it.hasNext()) {
-			element = it.next();
-			teamName = element.getAttributeValue("name");
-			if (teamName == null || teamName.isEmpty()) {
-				throw new ToolsException("Un nom d'équipe est manquant");
-			}
-			team = loadTeam(teamName);
-			loadSeasonTeam(team);
-			loadPlayers(element);
-		}
-		connection.commit();
-	}
-	
-	private Team loadTeam(String teamName)
-	throws ToolsException, QueryException {
-		logger.trace("Chargement de l'équipe " + teamName + "...");
-		Team team = retrieveTeam(teamName);
-		if (team == null) {
-			logger.trace("L'équipe n'as pas été retrouvée : Création d'un nouvel enregistrement");
-			team = new Team();
-			team.setLabel(teamName);
-			// FIXME this.teamDao.create(team);
-		} else {
-			logger.trace("Equipe existante : Pas de création");
-		}
-		return team;
-	}
-	
-	private void loadSeasonTeam(Team team)
-	throws DAOCrudException {
-		logger.trace("Enregistrement de l'équipe pour la saison courante...");
-		SeasonTeam seasonTeam = new SeasonTeam();
-		seasonTeam.setSeason(currentSeason);
-		// seasonTeam.setDate(date); --> CALCUL DATE PAR RAPPORT AU XML
-		// seasonTeam.setGym(gym); --> RECHERCHE GYMNASE
-		seasonTeam.setState(SeasonTeam.State.I);
-		seasonTeam.setTeam(team);
-		// FIXME stDao.create(seasonTeam);
-	}
-	
-	private Team retrieveTeam(String teamName)
-	throws QueryException, ToolsException {
-		List<Team> teams = this.teamDao.getAllByName(teamName);
-		if (teams.size() == 0)
-			return null;
-		if (teams.size() == 1)
-			return teams.get(0);
-		throw new ToolsException("Plusieurs équipes trouvées avec le nom [" + teamName + "]");
-	}
-	
-	private void loadPlayers(Element teamElement)
-	throws QueryException, ToolsException, DAOCrudException {
-		List<Element> playerElements = teamElement.getChildren("player");
-		Iterator<Element> it = playerElements.iterator();
-		Element playerElement;
-		String name, firstName;
-		User user;
-		while (it.hasNext()) {
-			playerElement = it.next();
-			name = playerElement.getAttributeValue("name");
-			firstName = playerElement.getAttributeValue("firstName");
-			if (name == null || firstName == null || name.isEmpty() || firstName.isEmpty()) {
-				throw new ToolsException("Un nom ou prénom de joueur n'est pas défini dans l'équipe [" + teamElement.getAttributeValue("name") + "]");
-			}
-			user = loadUser(name, firstName);
-			loadSeasonTeamPlayer(user);
-		}
-	}
-	
-	private User loadUser(String name, String firstName)
-	throws QueryException, ToolsException {
-		logger.trace("Chargement du joueur " + name + " " + firstName + "...");
-		User user = retrieveUser(name, firstName);
-		if (user == null) {
-			logger.trace("Le joueur n'as pas été retrouvé : Création d'un nouvel enregistrement");
-			user = new User();
-			user.setName(name);
-			user.setFirstName(firstName);
-			// user.setBirthDate("");
-			// user.setMail("");
-			// user.setPassword("");
-			// user.setPhone("");
-			// FIXME this.userDao.create(user);
-		} else {
-			logger.trace("Joueur existant : Pas de création");
-		}
-		return user;
-	}
-	
-	private void loadSeasonTeamPlayer(User user)
-	throws DAOCrudException {
-		
-	}
-	
-	private User retrieveUser(String name, String firstName)
-	throws QueryException, ToolsException {
-		List<User> user = userDao.getAllByNames(name, firstName);
-		if (user.size() == 0)
-			return null;
-		if (user.size() == 1)
-			return user.get(0);
-		throw new ToolsException("Plusieurs joueurs trouvés avec le nom [" + name + " " + firstName + "]");
-	}*/
 }
