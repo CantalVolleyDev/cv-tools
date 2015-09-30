@@ -42,9 +42,11 @@ public class ToolsEntry {
 		options.addOption(new Option(Commands.DEPLOY_WEBAPP_OPTION, "Déploiement webapp"));
 		// -- OPTION : -webapi
 		options.addOption(new Option(Commands.DEPLOY_API_OPTION, "Déploiement api"));
-		// -- OPTION : -fp
+		// -- OPTION : -file
 		Option filePath = new Option(Commands.FILE_PATH, "Chemin de fichier");
 		filePath.setArgs(1);
+		// -- OPTION : -simulation
+		options.addOption(new Option(Commands.SIMULATION, "Simulation"));
 		options.addOption(filePath);
 		return options;
 	}

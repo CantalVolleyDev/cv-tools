@@ -5,4 +5,5 @@ public class Commands {
 	public static final String DEPLOY_API_OPTION = "webapi";
 	public static final String DEPLOY_WEBAPP_OPTION = "webapp";
 	public static final String FILE_PATH = "file";
+	public static final String SIMULATION = "simulation";
 }
