@@ -22,12 +22,16 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
 import com.google.common.base.Strings;
+import com.jtouzy.cv.model.classes.Championship;
+import com.jtouzy.cv.model.classes.ChampionshipTeam;
 import com.jtouzy.cv.model.classes.Gym;
 import com.jtouzy.cv.model.classes.Season;
 import com.jtouzy.cv.model.classes.SeasonTeam;
 import com.jtouzy.cv.model.classes.SeasonTeamPlayer;
 import com.jtouzy.cv.model.classes.Team;
 import com.jtouzy.cv.model.classes.User;
+import com.jtouzy.cv.model.dao.ChampionshipDAO;
+import com.jtouzy.cv.model.dao.ChampionshipTeamDAO;
 import com.jtouzy.cv.model.dao.GymDAO;
 import com.jtouzy.cv.model.dao.SeasonDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamDAO;
@@ -89,6 +93,10 @@ public class RegisterImport extends AbstractTool {
 	 * Liste des gymnases existants indexés par leurs ID
 	 */
 	private HashMap<Integer,Gym> gymsById;
+	/**
+	 * Liste des championnats existants indexés par leurs ID
+	 */
+	private HashMap<Integer,Championship> championshipsById;
 	
 	/**
 	 * Liste des nouveaux utilisateurs à créer
@@ -114,6 +122,10 @@ public class RegisterImport extends AbstractTool {
 	 * Liste des équipes/saison/joueurs à créer
 	 */
 	private List<SeasonTeamPlayer> seasonTeamPlayersToCreate;
+	/**
+	 * Liste des équipes/championnats à créer
+	 */
+	private HashMap<Integer,ChampionshipTeam> championshipTeamsToCreate;
 	/**
 	 * Logger de l'outil
 	 */
@@ -208,6 +220,7 @@ public class RegisterImport extends AbstractTool {
 			this.teamsToCreate = new ArrayList<>();
 			this.seasonTeamsToCreate = new ArrayList<>();
 			this.seasonTeamPlayersToCreate = new ArrayList<>();
+			this.championshipTeamsToCreate = new HashMap<Integer,ChampionshipTeam>();
 		} catch (DAOInstantiationException ex) {
 			throw new QueryException(ex);
 		}
@@ -239,6 +252,7 @@ public class RegisterImport extends AbstractTool {
 		this.searchUsers();
 		this.searchTeams();
 		this.searchGyms();
+		this.searchChampionships();
 	}
 	
 	/**
@@ -302,6 +316,26 @@ public class RegisterImport extends AbstractTool {
 	}
 	
 	/**
+	 * Recherche des championnats dans la base
+	 * @throws QueryException Si problème dans la recherche des données
+	 */
+	private void searchChampionships()
+	throws QueryException {
+		try {
+			this.championshipsById = new HashMap<>();
+			List<Championship> chps = getDAO(ChampionshipDAO.class).getAll();
+			Iterator<Championship> itt = chps.iterator();
+			Championship chp;
+			while (itt.hasNext()) {
+				chp = itt.next();
+				this.championshipsById.put(chp.getIdentifier(), chp);
+			}
+		} catch (DAOInstantiationException ex) {
+			throw new QueryException(ex);
+		}
+	}
+	
+	/**
 	 * Initialisation du chargement des données depuis le XML
 	 * @throws ToolsException Si problème levé pendant le chargement des données
 	 */
@@ -343,6 +377,7 @@ public class RegisterImport extends AbstractTool {
 			name = teamElement.getAttributeValue("name");
 			if (Strings.isNullOrEmpty(name))
 				throw new ToolsException("Un nom d'équipe est manquant sur un élément");
+			team.setLabel(name);
 		}
 		
 		String gym = teamElement.getAttributeValue("gym"),
@@ -377,6 +412,36 @@ public class RegisterImport extends AbstractTool {
 		if (!simulation) {
 			try {
 				getDAO(SeasonTeamDAO.class).create(seasonTeam);
+			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+				throw new ToolsException(ex);
+			}
+		}
+		
+		String chpNumber = teamElement.getAttributeValue("chp");
+		if (chpNumber != null) {
+			try {
+				Championship chp = this.championshipsById.get(Integer.parseInt(chpNumber));
+				if (chp == null)
+					throw new ToolsException("Championnat " + chpNumber + " inexistant");
+				
+				ChampionshipTeam ech = new ChampionshipTeam();
+				ech.setChampionship(chp);
+				ech.setTeam(team);
+				ech.setBonus(0);
+				ech.setForfeit(0);
+				ech.setLoose(0);
+				ech.setLoose3By2(0);
+				ech.setPlay(0);
+				ech.setPoints(0);
+				ech.setPointsAgainst(0);
+				ech.setPointsFor(0);
+				ech.setSetsAgainst(0);
+				ech.setSetsFor(0);
+				ech.setWin(0);
+				this.championshipTeamsToCreate.put(ech.getChampionship().getIdentifier(), ech);
+				if (!simulation) {
+					getDAO(ChampionshipTeamDAO.class).create(ech);
+				}
 			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
 				throw new ToolsException(ex);
 			}
@@ -532,6 +597,10 @@ public class RegisterImport extends AbstractTool {
 		logger.trace("LISTE DES EQUIPES/SAISON/JOUEUR A CREER (" + this.seasonTeamPlayersToCreate.size() + ")");
 		this.seasonTeamPlayersToCreate.forEach(t -> {
 			logger.trace("Equipe/Saison/Joueur : " + t.getTeam().getLabel() + " / " + t.getPlayer().getName() + " / " + t.getPlayer().getFirstName());
+		});
+		logger.trace("LISTE DES EQUIPES/CHAMPIONNATS A CREER (" + this.championshipTeamsToCreate.size() + ")");
+		this.championshipTeamsToCreate.entrySet().forEach(e -> {
+			logger.trace("Equipe/Championnat : " + e.getKey() + " | " + e.getValue().getTeam().getLabel());
 		});
 	}
 }
