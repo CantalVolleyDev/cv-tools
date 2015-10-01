@@ -361,7 +361,6 @@ public class RegisterImport extends AbstractTool {
 	throws ToolsException {
 		String id = teamElement.getAttributeValue("id");
 		Team team;
-		String name;
 		boolean teamToCreate = false;
 		if (id != null) {
 			team = this.teamsById.get(Integer.parseInt(id));
@@ -369,16 +368,16 @@ public class RegisterImport extends AbstractTool {
 				throw new ToolsException("L'identifiant " + id + " ne correspond pas à une équipe");
 			}
 			this.existingTeams.add(team);
-			name = team.getLabel();
 		} else {
 			team = new Team();
 			teamToCreate = true;
 			this.teamsToCreate.add(team);
-			name = teamElement.getAttributeValue("name");
-			if (Strings.isNullOrEmpty(name))
-				throw new ToolsException("Un nom d'équipe est manquant sur un élément");
-			team.setLabel(name);
+
 		}
+		
+		String name = teamElement.getAttributeValue("name");
+		if (Strings.isNullOrEmpty(name))
+			throw new ToolsException("Un nom d'équipe est manquant sur un élément");
 		
 		String gym = teamElement.getAttributeValue("gym"),
 			   date = teamElement.getAttributeValue("date");
@@ -403,6 +402,7 @@ public class RegisterImport extends AbstractTool {
 		}
 		
 		SeasonTeam seasonTeam = new SeasonTeam();
+		seasonTeam.setLabel(name);
 		seasonTeam.setGym(gymObj);
 		seasonTeam.setDate(LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 		seasonTeam.setSeason(this.currentSeason);
@@ -411,7 +411,7 @@ public class RegisterImport extends AbstractTool {
 		this.seasonTeamsToCreate.add(seasonTeam);
 		if (!simulation) {
 			try {
-				getDAO(SeasonTeamDAO.class).create(seasonTeam);
+				seasonTeam = getDAO(SeasonTeamDAO.class).create(seasonTeam);
 			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
 				throw new ToolsException(ex);
 			}
@@ -426,7 +426,7 @@ public class RegisterImport extends AbstractTool {
 				
 				ChampionshipTeam ech = new ChampionshipTeam();
 				ech.setChampionship(chp);
-				ech.setTeam(team);
+				ech.setTeam(seasonTeam);
 				ech.setBonus(0);
 				ech.setForfeit(0);
 				ech.setLoose(0);
@@ -447,7 +447,7 @@ public class RegisterImport extends AbstractTool {
 			}
 		}
 		
-		buildPlayersWithTeamXML(team, teamElement);
+		buildPlayersWithTeamXML(seasonTeam, teamElement);
 	}
 	
 	/**
@@ -456,7 +456,7 @@ public class RegisterImport extends AbstractTool {
 	 * @param teamElement Element XML représentant l'équipe
 	 * @throws ToolsException Si problème levé pendant le chargement des données
 	 */
-	private void buildPlayersWithTeamXML(Team team, Element teamElement)
+	private void buildPlayersWithTeamXML(SeasonTeam team, Element teamElement)
 	throws ToolsException {
 		List<Element> playerElements = teamElement.getChildren("player");
 		if (playerElements == null || playerElements.size() == 0)
@@ -484,7 +484,7 @@ public class RegisterImport extends AbstractTool {
 	 * @param playerElement Element XML représentant le joueur
 	 * @throws ToolsException Si problème levé pendant le chargement des données
 	 */
-	private boolean buildPlayerWithXML(Team team, Element playerElement)
+	private boolean buildPlayerWithXML(SeasonTeam team, Element playerElement)
 	throws ToolsException {
 		boolean managerFlag = false;
 		String id = playerElement.getAttributeValue("id");
@@ -554,7 +554,6 @@ public class RegisterImport extends AbstractTool {
 		stp.setManager(managerFlag);
 		stp.setPlayer(user);
 		stp.setTeam(team);
-		stp.setSeason(this.currentSeason);
 		this.seasonTeamPlayersToCreate.add(stp);
 		if (!simulation) {
 			try {
@@ -575,16 +574,10 @@ public class RegisterImport extends AbstractTool {
 		logger.trace("Résultat de la création/existence :     ");
 		logger.trace("----------------------------------------");
 		logger.trace("LISTE DES EQUIPES A CREER (" + this.teamsToCreate.size() + ")");
-		this.teamsToCreate.forEach(t -> {
-			logger.trace("Equipe : " + t.getLabel());
-		});
+		logger.trace("LISTE DES EQUIPES EXISTANTES ENREGISTREES (" + this.existingTeams.size() + ")");
 		logger.trace("LISTE DES UTILISATEURS A CREER (" + this.usersToCreate.size() + ")");
 		this.usersToCreate.forEach(t -> {
 			logger.trace("Utilisateur : " + t.getFirstName() + " " + t.getName());
-		});
-		logger.trace("LISTE DES EQUIPES EXISTANTES ENREGISTREES (" + this.existingTeams.size() + ")");
-		this.existingTeams.forEach(t -> {
-			logger.trace("Equipe : " + t.getLabel());
 		});
 		logger.trace("LISTE DES UTILISATEURS EXISTANTS ENREGISTRES (" + this.existingUsers.size() + ")");
 		this.existingUsers.forEach(t -> {
@@ -592,7 +585,7 @@ public class RegisterImport extends AbstractTool {
 		});
 		logger.trace("LISTE DES EQUIPES/SAISON A CREER (" + this.seasonTeamsToCreate.size() + ")");
 		this.seasonTeamsToCreate.forEach(t -> {
-			logger.trace("Equipe/Saison : " + t.getTeam().getLabel() + " / " + t.getGym().getLabel() + " / " + t.getDate().format(DateTimeFormatter.ofPattern("EEEE HH:mm")));
+			logger.trace("Equipe/Saison : " + t.getLabel() + " / " + t.getGym().getLabel() + " / " + t.getDate().format(DateTimeFormatter.ofPattern("EEEE HH:mm")));
 		});
 		logger.trace("LISTE DES EQUIPES/SAISON/JOUEUR A CREER (" + this.seasonTeamPlayersToCreate.size() + ")");
 		this.seasonTeamPlayersToCreate.forEach(t -> {
