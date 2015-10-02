@@ -22,6 +22,8 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.jtouzy.cv.model.classes.Championship;
 import com.jtouzy.cv.model.classes.ChampionshipTeam;
 import com.jtouzy.cv.model.classes.Gym;
@@ -125,7 +127,7 @@ public class RegisterImport extends AbstractTool {
 	/**
 	 * Liste des équipes/championnats à créer
 	 */
-	private HashMap<Integer,ChampionshipTeam> championshipTeamsToCreate;
+	private Multimap<Integer,ChampionshipTeam> championshipTeamsToCreate;
 	/**
 	 * Logger de l'outil
 	 */
@@ -220,7 +222,7 @@ public class RegisterImport extends AbstractTool {
 			this.teamsToCreate = new ArrayList<>();
 			this.seasonTeamsToCreate = new ArrayList<>();
 			this.seasonTeamPlayersToCreate = new ArrayList<>();
-			this.championshipTeamsToCreate = new HashMap<Integer,ChampionshipTeam>();
+			this.championshipTeamsToCreate = HashMultimap.create();
 		} catch (DAOInstantiationException ex) {
 			throw new QueryException(ex);
 		}
@@ -592,7 +594,7 @@ public class RegisterImport extends AbstractTool {
 			logger.trace("Equipe/Saison/Joueur : " + t.getTeam().getLabel() + " / " + t.getPlayer().getName() + " / " + t.getPlayer().getFirstName());
 		});
 		logger.trace("LISTE DES EQUIPES/CHAMPIONNATS A CREER (" + this.championshipTeamsToCreate.size() + ")");
-		this.championshipTeamsToCreate.entrySet().forEach(e -> {
+		this.championshipTeamsToCreate.entries().forEach(e -> {
 			logger.trace("Equipe/Championnat : " + e.getKey() + " | " + e.getValue().getTeam().getLabel());
 		});
 	}
