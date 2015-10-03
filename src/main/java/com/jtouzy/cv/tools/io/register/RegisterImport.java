@@ -404,6 +404,7 @@ public class RegisterImport extends AbstractTool {
 		}
 		
 		SeasonTeam seasonTeam = new SeasonTeam();
+		seasonTeam.setImage(null);
 		seasonTeam.setLabel(name);
 		seasonTeam.setGym(gymObj);
 		seasonTeam.setDate(LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
@@ -514,7 +515,8 @@ public class RegisterImport extends AbstractTool {
 		
 		String manager = playerElement.getAttributeValue("manager"),
 			   mail = playerElement.getAttributeValue("mail"),
-			   tel = playerElement.getAttributeValue("tel");
+			   tel = playerElement.getAttributeValue("tel"),
+			   gender = playerElement.getAttributeValue("gender");
 
 		if (manager != null && manager.equals("true")) {
 			if (userToCreate) {
@@ -532,7 +534,11 @@ public class RegisterImport extends AbstractTool {
 			user.setMail(mail);
 		}
 		if (userToCreate) {
+			if (gender == null) {
+				throw new ToolsException("Le genre doit être renseigné pour : " + user.getName() + "/" + user.getFirstName());
+			}
 			user.setAdministrator(false);
+			user.setImage(null);
 			user.setPassword("");
 		}
 		if (tel != null) {

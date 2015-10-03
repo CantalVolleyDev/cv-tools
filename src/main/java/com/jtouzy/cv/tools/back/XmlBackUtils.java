@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -242,6 +243,21 @@ public class XmlBackUtils {
 		Iterator<TableContext> it = values.keySet().iterator();
 		Iterator<Object> itObj = null;
 		TableContext tableContext;
+		
+		List<String> male = Arrays.asList("Fabrice", "Pierre", "Pierré", "Abdelkrim", "Thierry",
+				"Christophe", "Mickael", "Rémy", "Alexandre", "Frederic", "Stéphane", "Jean marie",
+				"Cédric", "Baptiste", "Bruno", "Cyril", "Laurent", "Matthieu", "Christian", "William",
+				"Sébastien", "Guillaume", "Philippe", "Gael", "François", "Iziadin", "Frédéric",
+				"Benoit", "Vincent", "Justin", "Jérémy", "Jeremy", "Eric", "Nicolas", "Fabien", "Romain",
+				"Joao", "Arnaud", "Antonio", "Anthony", "Izmir", "Jean christophe", "Jean françois",
+				"Sylvain", "Yannick", "David", "Olivier", "Kujtim", "Patrick", "Erwan", "Firmin", "Emilien",
+				"Benjamin", "Gilles", "Jean-philippe", "Michel", "Ioan", "Julien");
+		List<String> female = Arrays.asList("Fannie", "Christine", "Claire", "Julie", "Camille", "Floriane",
+				"Bérengère", "Géraldine", "Sarah", "Audrey", "Laura", "Irmina", "Cécile", "Sandrine", "Maeva",
+				"Aurélie", "Stéphanie", "Magali", "Linda", "Marine", "Valérie", "Sabrina", "Catherine", "Anais",
+				"Lise", "Nathalie", "Manon", "Emilie", "Amélie", "Caroline", "Nadège", "Karen", "Beatrice", "Céline",
+				"Laurence", "Valerie", "Léa", "Melanie", "Coralie");
+		
 		while (it.hasNext()) {
 			tableContext = it.next();
 			// ----------------------------------------------
@@ -264,6 +280,7 @@ public class XmlBackUtils {
 				SeasonTeam st = null;
 				while (itObj.hasNext()) {
 					st = (SeasonTeam)itObj.next();
+					st.setImage(null);
 					List<String> infos = Splitter.on("_")
 							                     .splitToList(st.getInformation());
 					String day = infos.get(0);
@@ -304,11 +321,20 @@ public class XmlBackUtils {
 				User usr = null;
 				while (itObj.hasNext()) {
 					usr = (User)itObj.next();
+					usr.setImage(null);
 					usr.setName(usr.getName().toUpperCase());
+					if (usr.getName().equals("TOUZY")) {
+						usr.setImage("jpeg");
+					}
 					usr.setFirstName(
 							CaseFormat.LOWER_UNDERSCORE.to(
 									CaseFormat.UPPER_CAMEL, 
 										usr.getFirstName().toLowerCase()));
+					if (male.contains(usr.getFirstName())) {
+						usr.setGender(User.Gender.M);
+					} else if (female.contains(usr.getFirstName()))
+						usr.setGender(User.Gender.F);
+					else throw new IllegalArgumentException("Sexe non trouvé pour : " + usr.getFirstName());
 				}
 			}
 		}
@@ -415,8 +441,14 @@ public class XmlBackUtils {
 				}
 			}
 			if (object instanceof SeasonTeam) {
-				((SeasonTeam)object).setLabel(oldTeamsLabels.get(((SeasonTeam)object).getTeam().getIdentifier()));
-				oldTeamIds.add(((SeasonTeam)object).getTeam().getIdentifier());
+				SeasonTeam st = ((SeasonTeam)object);
+				st.setLabel(oldTeamsLabels.get(st.getTeam().getIdentifier()));
+				if (st.getLabel().contains("FOX")) {
+					st.setImage("jpg");
+				} else if (st.getLabel().contains("Raptor")) {
+					st.setImage("png");
+				}
+				oldTeamIds.add(st.getTeam().getIdentifier());
 			}
 			itc = tableContext.getColumns().iterator();
 			while (itc.hasNext()) {
