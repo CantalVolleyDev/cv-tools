@@ -382,7 +382,8 @@ public class RegisterImport extends AbstractTool {
 			throw new ToolsException("Un nom d'équipe est manquant sur un élément");
 		
 		String gym = teamElement.getAttributeValue("gym"),
-			   date = teamElement.getAttributeValue("date");
+			   date = teamElement.getAttributeValue("date"),
+			   image = teamElement.getAttributeValue("img");
 		Gym gymObj;
 		if (Strings.isNullOrEmpty(gym))
 			throw new ToolsException("Gymnase non précisé pour l'équipe [" + name + "]");
@@ -405,6 +406,9 @@ public class RegisterImport extends AbstractTool {
 		
 		SeasonTeam seasonTeam = new SeasonTeam();
 		seasonTeam.setImage(null);
+		if (image != null) {
+			seasonTeam.setImage(image);
+		}
 		seasonTeam.setLabel(name);
 		seasonTeam.setGym(gymObj);
 		seasonTeam.setDate(LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
