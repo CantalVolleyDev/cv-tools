@@ -2,8 +2,6 @@ package com.jtouzy.cv.tools.io.register;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -11,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.logging.log4j.LogManager;
@@ -43,14 +40,11 @@ import com.jtouzy.cv.model.dao.UserDAO;
 import com.jtouzy.cv.tools.AbstractTool;
 import com.jtouzy.cv.tools.Commands;
 import com.jtouzy.cv.tools.errors.ToolsException;
-import com.jtouzy.dao.DAO;
-import com.jtouzy.dao.DAOManager;
 import com.jtouzy.dao.errors.DAOCrudException;
 import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
 import com.jtouzy.dao.errors.model.ModelClassDefinitionException;
 import com.jtouzy.dao.errors.validation.DataValidationException;
-import com.jtouzy.utils.resources.ResourceUtils;
 
 /**
  * Lecture du fichier d'imporation des inscriptions<br>
@@ -65,11 +59,6 @@ import com.jtouzy.utils.resources.ResourceUtils;
  * @author JTO
  */
 public class RegisterImport extends AbstractTool {
-	/**
-	 * Connexion à la base de données
-	 */
-	private Connection connection;
-	
 	/**
 	 * Element principal du fichier XML en entrée
 	 */
@@ -142,17 +131,6 @@ public class RegisterImport extends AbstractTool {
 	}
 	
 	/**
-	 * Récupération d'un DAO par sa classe
-	 * @param daoClass Classe du DAO demandée
-	 * @return Instance du DAO
-	 * @throws DAOInstantiationException Si problème dans l'instanciation du DAO
-	 */
-	private <D extends DAO<T>,T> D getDAO(Class<D> daoClass)
-	throws DAOInstantiationException {
-		return DAOManager.getDAO(this.connection, daoClass);
-	}
-	
-	/**
 	 * Exécution générale de l'outil
 	 * - Lecture du fichier XML
 	 * - Intégration des nouvelles équipes et nouveaux joueurs
@@ -201,18 +179,11 @@ public class RegisterImport extends AbstractTool {
 	 * @throws SQLException
 	 * @throws QueryException
 	 */
-	private void initializeContext()
-	throws IOException, ModelClassDefinitionException, SQLException, QueryException {
+	@Override
+	protected void initializeContext()
+	throws IOException, ModelClassDefinitionException, SQLException, ToolsException {
 		try {
-			logger.trace("Initialisation du contexte...");
-			Properties properties = ResourceUtils.readProperties("tools");
-			DAOManager.init("com.jtouzy.cv.model.classes");
-			connection = DriverManager.getConnection(new StringBuilder().append(properties.getProperty("db.jdbcUrl"))
-	                												    .append("/")
-	        												    		.append(properties.getProperty("db.databaseName"))
-	        												    		.toString(),
-										    		 properties.getProperty("db.admin.user"),
-										    		 properties.getProperty("db.admin.password"));
+			super.initializeContext();
 			connection.setAutoCommit(false);
 			this.currentSeason = getDAO(SeasonDAO.class).getCurrentSeason();
 			this.initXmlDocument();
@@ -223,8 +194,8 @@ public class RegisterImport extends AbstractTool {
 			this.seasonTeamsToCreate = new ArrayList<>();
 			this.seasonTeamPlayersToCreate = new ArrayList<>();
 			this.championshipTeamsToCreate = HashMultimap.create();
-		} catch (DAOInstantiationException ex) {
-			throw new QueryException(ex);
+		} catch (DAOInstantiationException | QueryException ex) {
+			throw new ToolsException(ex);
 		}
 	}
 	

@@ -10,7 +10,9 @@ import org.apache.commons.cli.ParseException;
 import com.jtouzy.cv.tools.deploy.ProductionDeployment;
 import com.jtouzy.cv.tools.errors.CLIException;
 import com.jtouzy.cv.tools.errors.ToolsException;
+import com.jtouzy.cv.tools.generate.ChampionshipGenerate;
 import com.jtouzy.cv.tools.io.register.RegisterImport;
+import com.jtouzy.cv.tools.switcher.DaySwitcher;
 
 public class ToolsEntry {
 	private CommandLine commandLine;
@@ -45,9 +47,23 @@ public class ToolsEntry {
 		// -- OPTION : -file
 		Option filePath = new Option(Commands.FILE_PATH, "Chemin de fichier");
 		filePath.setArgs(1);
+		options.addOption(filePath);
 		// -- OPTION : -simulation
 		options.addOption(new Option(Commands.SIMULATION, "Simulation"));
-		options.addOption(filePath);
+		// -- OPTION : -id
+		Option id = new Option(Commands.ID, "Identifiant");
+		id.setArgs(1);
+		options.addOption(id);
+		// -- OPTION : -return
+		options.addOption(new Option(Commands.RETURN, "Génération du retour"));
+		// -- OPTION : -fd
+		Option fd = new Option(Commands.FIRST_DAY, "Journée pour échange");
+		fd.setArgs(1);
+		options.addOption(fd);
+		// -- OPTION : -sd
+		Option sd = new Option(Commands.SWITCH_DAY, "Journée pour échange");
+		sd.setArgs(1);
+		options.addOption(sd);
 		return options;
 	}
 	
@@ -71,6 +87,12 @@ public class ToolsEntry {
 				break;
 			case IMPORT_REGISTER:
 				executor = new RegisterImport(commandLine);
+				break;
+			case CHP_GEN:
+				executor = new ChampionshipGenerate(commandLine);
+				break;
+			case DAY_SWITCH:
+				executor = new DaySwitcher(commandLine);
 				break;
 			default:
 				throw new CLIException("Outil non géré <" + tool + ">");
