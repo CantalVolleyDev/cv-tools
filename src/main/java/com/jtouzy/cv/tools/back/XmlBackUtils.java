@@ -73,7 +73,8 @@ public class XmlBackUtils {
 		"etaeqi",
 		"gkeusr",
 		"grpech", "libech",
-		"cmpesj", "saiesj"
+		"cmpesj", "saiesj",
+		"numsem"
 	);
 	private static final Map<String, Integer> objectsSummary = new LinkedHashMap<>();
 	private static final Map<String, Integer> dataSummary = new LinkedHashMap<>();
@@ -443,6 +444,7 @@ public class XmlBackUtils {
 			if (object instanceof SeasonTeam) {
 				SeasonTeam st = ((SeasonTeam)object);
 				st.setLabel(oldTeamsLabels.get(st.getTeam().getIdentifier()));
+				st.setPlayersNumber(4);
 				if (st.getLabel().contains("FOX")) {
 					st.setImage("jpg");
 				} else if (st.getLabel().contains("Raptor")) {

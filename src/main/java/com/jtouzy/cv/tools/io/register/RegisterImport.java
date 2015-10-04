@@ -383,7 +383,8 @@ public class RegisterImport extends AbstractTool {
 		
 		String gym = teamElement.getAttributeValue("gym"),
 			   date = teamElement.getAttributeValue("date"),
-			   image = teamElement.getAttributeValue("img");
+			   image = teamElement.getAttributeValue("img"),
+			   nbp = teamElement.getAttributeValue("nbp");
 		Gym gymObj;
 		if (Strings.isNullOrEmpty(gym))
 			throw new ToolsException("Gymnase non précisé pour l'équipe [" + name + "]");
@@ -394,6 +395,8 @@ public class RegisterImport extends AbstractTool {
 		}
 		if (Strings.isNullOrEmpty(date))
 			throw new ToolsException("Date de match non précisée pour l'équipe [" + name + "]");
+		if (Strings.isNullOrEmpty(nbp))
+			throw new ToolsException("Le nombre de joueurs pour un match n'est pas renseigné [" + name + "]");
 		
 		if (teamToCreate && !simulation) {
 			try {
@@ -406,9 +409,11 @@ public class RegisterImport extends AbstractTool {
 		
 		SeasonTeam seasonTeam = new SeasonTeam();
 		seasonTeam.setImage(null);
+		seasonTeam.setImagePlayers(null);
 		if (image != null) {
 			seasonTeam.setImage(image);
 		}
+		seasonTeam.setPlayersNumber(Integer.parseInt(nbp));
 		seasonTeam.setLabel(name);
 		seasonTeam.setGym(gymObj);
 		seasonTeam.setDate(LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
@@ -541,6 +546,7 @@ public class RegisterImport extends AbstractTool {
 			if (gender == null) {
 				throw new ToolsException("Le genre doit être renseigné pour : " + user.getName() + "/" + user.getFirstName());
 			}
+			user.setGender(User.Gender.valueOf(gender));
 			user.setAdministrator(false);
 			user.setImage(null);
 			user.setPassword("");
@@ -558,6 +564,7 @@ public class RegisterImport extends AbstractTool {
 					getDAO(UserDAO.class).update(user);
 				}
 			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+				System.err.println(user);
 				throw new ToolsException(ex);
 			}
 		}
