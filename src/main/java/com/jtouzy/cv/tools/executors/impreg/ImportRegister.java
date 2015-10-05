@@ -1,4 +1,4 @@
-package com.jtouzy.cv.tools.io.register;
+package com.jtouzy.cv.tools.executors.impreg;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jdom2.Document;
@@ -37,9 +36,9 @@ import com.jtouzy.cv.model.dao.SeasonTeamDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamPlayerDAO;
 import com.jtouzy.cv.model.dao.TeamDAO;
 import com.jtouzy.cv.model.dao.UserDAO;
-import com.jtouzy.cv.tools.AbstractTool;
-import com.jtouzy.cv.tools.Commands;
 import com.jtouzy.cv.tools.errors.ToolsException;
+import com.jtouzy.cv.tools.model.ParameterNames;
+import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.errors.DAOCrudException;
 import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
@@ -58,7 +57,7 @@ import com.jtouzy.dao.errors.validation.DataValidationException;
  * </code>
  * @author JTO
  */
-public class RegisterImport extends AbstractTool {
+public class ImportRegister extends ToolExecutorImpl {
 	/**
 	 * Element principal du fichier XML en entrée
 	 */
@@ -120,14 +119,12 @@ public class RegisterImport extends AbstractTool {
 	/**
 	 * Logger de l'outil
 	 */
-	private static final Logger logger = LogManager.getLogger(RegisterImport.class);
+	private static final Logger logger = LogManager.getLogger(ImportRegister.class);
 	
 	/**
 	 * Constructeur
-	 * @param commandLine Informations sur la ligne de commande lancée
 	 */
-	public RegisterImport(CommandLine commandLine) {
-		super(commandLine);
+	public ImportRegister() {
 	}
 	
 	/**
@@ -138,20 +135,19 @@ public class RegisterImport extends AbstractTool {
 	 * @throws ToolsException Si un problème survient pendant l'exécution
 	 */
 	@Override
-	public void execute() 
-	throws ToolsException {
-		if (!getCommandLine().hasOption(Commands.FILE_PATH)) {
+	public void execute() {
+		if (!hasParameter(ParameterNames.FILEPATH))
 			throw new ToolsException("Chemin du fichier obligatoire avec le paramètre \"-file\"");
-		}
+		
 		try {
-			this.simulation = getCommandLine().hasOption(Commands.SIMULATION); 
+			this.simulation = hasParameter(ParameterNames.SIMULATION);
 			this.initializeContext();
 			this.searchOldData();
 			this.loadXMLData();
 			this.printDataToCreate();
 			this.connection.commit();
 			this.connection.close();
-		} catch (IOException | ModelClassDefinitionException | SQLException | QueryException ex) {
+		} catch (SQLException | QueryException | ToolsException ex) {
 			if (this.connection != null) {
 				try {
 					connection.rollback();
@@ -180,8 +176,7 @@ public class RegisterImport extends AbstractTool {
 	 * @throws QueryException
 	 */
 	@Override
-	protected void initializeContext()
-	throws IOException, ModelClassDefinitionException, SQLException, ToolsException {
+	protected void initializeContext() {
 		try {
 			super.initializeContext();
 			connection.setAutoCommit(false);
@@ -194,7 +189,7 @@ public class RegisterImport extends AbstractTool {
 			this.seasonTeamsToCreate = new ArrayList<>();
 			this.seasonTeamPlayersToCreate = new ArrayList<>();
 			this.championshipTeamsToCreate = HashMultimap.create();
-		} catch (DAOInstantiationException | QueryException ex) {
+		} catch (DAOInstantiationException | QueryException | SQLException | IOException ex) {
 			throw new ToolsException(ex);
 		}
 	}
@@ -207,7 +202,7 @@ public class RegisterImport extends AbstractTool {
 	throws IOException {
 		try {
 			SAXBuilder builder = new SAXBuilder();
-			File xmlFile = new File(getCommandLine().getOptionValue(Commands.FILE_PATH));
+			File xmlFile = new File(getParameterValue(ParameterNames.FILEPATH));
 			Document document = (Document) builder.build(xmlFile);
 			this.rootElement = document.getRootElement();
 		} catch (JDOMException ex) {
@@ -520,7 +515,7 @@ public class RegisterImport extends AbstractTool {
 			user.setGender(User.Gender.valueOf(gender));
 			user.setAdministrator(false);
 			user.setImage(null);
-			user.setPassword("");
+			user.setPassword(null);
 		}
 		if (tel != null) {
 			user.setPhone(tel);

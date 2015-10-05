@@ -1,6 +1,6 @@
 package com.jtouzy.cv.tools.errors;
 
-public class ToolsException extends Exception {
+public class ToolsException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 
 	public ToolsException() {

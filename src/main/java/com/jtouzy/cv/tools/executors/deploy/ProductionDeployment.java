@@ -1,4 +1,4 @@
-package com.jtouzy.cv.tools.deploy;
+package com.jtouzy.cv.tools.executors.deploy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -7,9 +7,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -18,15 +16,14 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 
-import com.jtouzy.utils.resources.ResourceUtils;
-import com.jtouzy.cv.tools.AbstractTool;
-import com.jtouzy.cv.tools.Commands;
-import com.jtouzy.cv.tools.errors.ProductionDeploymentException;
+import com.jtouzy.cv.config.PropertiesReader;
 import com.jtouzy.cv.tools.errors.ToolsException;
+import com.jtouzy.cv.tools.model.ParameterNames;
+import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.utils.ftp.FTPCli;
 import com.jtouzy.utils.ssh.SSHCli;
 
-public class ProductionDeployment extends AbstractTool {
+public class ProductionDeployment extends ToolExecutorImpl {
 	private static Logger logger = LogManager.getLogger(ProductionDeployment.class);
 	private static final String SSH_USER = "ssh.user";
 	private static final String SSH_PASSWORD = "ssh.password";
@@ -43,21 +40,18 @@ public class ProductionDeployment extends AbstractTool {
 	private static final String WEBAPI_UPLOAD_PATH = "webapi.upload";
 	private static final String WEBAPP_UPLOAD_PATH = "webapp.upload";
 	private static final String MAVEN_HOME = "maven.home";
-	private Properties properties;
 	
-	public ProductionDeployment(CommandLine commandLine) {
-		super(commandLine);
+	public ProductionDeployment() {
 	}
 
 	@Override
-	public void execute() 
-	throws ToolsException {
+	public void execute() {
 		try {
-			this.properties = ResourceUtils.readProperties("tools");
-			if (getCommandLine().hasOption(Commands.DEPLOY_API_OPTION)) {
+			initializeProperties();
+			if (hasParameter(ParameterNames.WEBAPI)) {
 				deployWebAPI();
-			} 
-			if (getCommandLine().hasOption(Commands.DEPLOY_WEBAPP_OPTION)) {
+			}
+			if (hasParameter(ParameterNames.WEBAPP)) {
 				deployWebApp();
 			}
 		} catch (IOException ex) {
@@ -65,8 +59,12 @@ public class ProductionDeployment extends AbstractTool {
 		}
 	}
 	
+	private String getProperty(String propertyName) {
+		return PropertiesReader.getProperty(propertyName);
+	}
+	
 	private void deployWebAPI()
-	throws ProductionDeploymentException, IOException {
+	throws IOException {
 		buildLocalProjects();
 		uploadWebAPIProject();
 		tomcatDeployAndSave();
@@ -81,7 +79,7 @@ public class ProductionDeployment extends AbstractTool {
 	private void uploadWebAPIProject()
 	throws IOException {
 		logger.trace("Téléchargement des fichiers sur le serveur...");
-		FTPCli.connect("5.135.146.110", properties.getProperty(WEBAPI_FTP_USER), properties.getProperty(WEBAPI_FTP_PASSWORD))
+		FTPCli.connect("5.135.146.110", getProperty(WEBAPI_FTP_USER), getProperty(WEBAPI_FTP_PASSWORD))
 		      .removeDirectory("/jto/temp/cvapi", false)
 		      .uploadDirectory(getWebAPIUploadPath(), "/jto/temp/cvapi")
 		      .execute();
@@ -89,16 +87,16 @@ public class ProductionDeployment extends AbstractTool {
 	}
 	
 	private String getWebAPIUploadPath() {
-		return properties.getProperty(API_PROJECT_PATH) + properties.getProperty(WEBAPI_UPLOAD_PATH);
+		return getProperty(API_PROJECT_PATH) + getProperty(WEBAPI_UPLOAD_PATH);
 	}
 	
 	private void tomcatDeployAndSave()
 	throws IOException {
 		logger.trace("Exécution des commandes sur le serveur...");
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		SSHCli.connect(properties.getProperty(SSH_HOST), 
-				       properties.getProperty(SSH_USER), 
-				       properties.getProperty(SSH_PASSWORD))
+		SSHCli.connect(getProperty(SSH_HOST), 
+				       getProperty(SSH_USER), 
+				       getProperty(SSH_PASSWORD))
 			  .openChannel("shell")
 			  .useCommandsFromFile("tomcat-deploy.commands")
 			  .useOutputStream(baos)
@@ -133,7 +131,7 @@ public class ProductionDeployment extends AbstractTool {
 	private void uploadWebAppProject()
 	throws IOException {
 		logger.trace("Téléchargement des fichiers sur le serveur...");
-		FTPCli.connect("ftp.cantalvolley.fr", properties.getProperty(WEBAPP_FTP_USER), properties.getProperty(WEBAPP_FTP_PASSWORD))
+		FTPCli.connect("ftp.cantalvolley.fr", getProperty(WEBAPP_FTP_USER), getProperty(WEBAPP_FTP_PASSWORD))
 		      .removeDirectory("/dvtweb1", false)
 		      .uploadDirectory(getWebAppUploadPath(), "/dvtweb1")
 		      .execute();
@@ -141,7 +139,7 @@ public class ProductionDeployment extends AbstractTool {
 	}
 	
 	private String getWebAppUploadPath() {
-		return properties.getProperty(WEBAPP_PROJECT_PATH) + properties.getProperty(WEBAPP_UPLOAD_PATH);
+		return getProperty(WEBAPP_PROJECT_PATH) + getProperty(WEBAPP_UPLOAD_PATH);
 	}
 	
 	private void launchMaven(String... paths)
@@ -151,13 +149,13 @@ public class ProductionDeployment extends AbstractTool {
 			List<String> projects = Arrays.asList(paths);
 			InvocationRequest request;
 			Invoker invoker = new DefaultInvoker();
-			invoker.setMavenHome(new File(properties.getProperty(MAVEN_HOME)));
+			invoker.setMavenHome(new File(getProperty(MAVEN_HOME)));
 			Iterator<String> it = projects.iterator();
 			String projectPathProperty;
 			while (it.hasNext()) {
 				projectPathProperty = it.next();
 				request = new DefaultInvocationRequest();
-				request.setPomFile(new File(properties.getProperty(projectPathProperty) + "/pom.xml"));
+				request.setPomFile(new File(getProperty(projectPathProperty) + "/pom.xml"));
 				request.setGoals(goals);
 				invoker.execute(request);
 			}

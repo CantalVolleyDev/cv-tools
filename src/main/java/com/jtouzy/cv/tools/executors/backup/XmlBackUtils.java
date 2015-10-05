@@ -1,8 +1,6 @@
-package com.jtouzy.cv.tools.back;
+package com.jtouzy.cv.tools.executors.backup;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +8,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -43,7 +40,10 @@ import com.jtouzy.cv.model.dao.SeasonTeamDAO;
 import com.jtouzy.cv.model.dao.SeasonTeamPlayerDAO;
 import com.jtouzy.cv.model.dao.TeamDAO;
 import com.jtouzy.cv.model.dao.UserDAO;
-import com.jtouzy.cv.tools.generate.DBGenerateTool;
+import com.jtouzy.cv.tools.errors.ToolsException;
+import com.jtouzy.cv.tools.executors.dbgen.DBGenerateTool;
+import com.jtouzy.cv.tools.model.ParameterNames;
+import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.DAO;
 import com.jtouzy.dao.DAOManager;
 import com.jtouzy.dao.db.DBType;
@@ -51,18 +51,9 @@ import com.jtouzy.dao.model.ColumnContext;
 import com.jtouzy.dao.model.ModelContext;
 import com.jtouzy.dao.model.TableContext;
 import com.jtouzy.dao.reflect.ObjectUtils;
-import com.jtouzy.utils.resources.ResourceUtils;
 
-public class XmlBackUtils {
-
-	// FONCTIONS A RAJOUTER DANS L'OUTIL DE BACKUP DE L'ANCIENNE BASE DE DONNEES :
-	// - Création de nouveaux ID et correspondances avec les anciens pour recopie dans les tables
-	// - Rajouter les contraintes externes (DBGenerateTool) pour les clés étrangères
-	// - Faire un commun pour créer les tables dans l'ordre et avoir les DAO associés
-	// - Pour les dates des commentaires, faire une méthode particulière pour date de match + 1 jour
-	
-	private static Connection connection;
-	private static Multimap<TableContext, Object> values;
+public class XmlBackUtils extends ToolExecutorImpl {
+	private Multimap<TableContext, Object> values;
 	private static final List<String> tableList = Lists.newArrayList(
 		"usr", "sai", "cmp", "chp", "mat", "eqi", "eqs", "esj", "pma", "gym", "cmt", "ech", "wsem"
 	);
@@ -76,50 +67,46 @@ public class XmlBackUtils {
 		"cmpesj", "saiesj",
 		"numsem"
 	);
-	private static final Map<String, Integer> objectsSummary = new LinkedHashMap<>();
-	private static final Map<String, Integer> dataSummary = new LinkedHashMap<>();
-	private static final Table<TableContext, Integer, Integer> equivalences = HashBasedTable.create();
-	private static final Map<Integer, String> oldTeamsLabels = new LinkedHashMap<>();
+	private Map<String, Integer> objectsSummary = new LinkedHashMap<>();
+	private Map<String, Integer> dataSummary = new LinkedHashMap<>();
+	private Table<TableContext, Integer, Integer> equivalences = HashBasedTable.create();
+	private Map<Integer, String> oldTeamsLabels = new LinkedHashMap<>();
 	
-	public static void main(String[] args)
-	throws Exception {
-		// Initialisations du fichier properties
-		Properties properties = ResourceUtils.readProperties("tools");
-		// Initialisation des classes modèles
-		DAOManager.init("com.jtouzy.cv.model.classes");
-		// Initialisation de la connexion
-		connection = DriverManager.getConnection(properties.getProperty("db.jdbcUrl") + 
-				                                 "/" + properties.getProperty("db.databaseName"),
-				                                 properties.getProperty("db.admin.user"),
-				                                 properties.getProperty("db.admin.password"));
-		// Génération des tables
-		DBGenerateTool.main(null);
-		// Chargement des données depuis le dump dans des objets modèle
-		load();
-		// Traitement éventuel des données pour modifications
-		trtData();
-		// Création en base des objets modèle 
-		createData();
+	public XmlBackUtils() {
 	}
 	
-	public static void load()
+	@Override
+	public void execute() {
+		try {
+			if (!hasParameter(ParameterNames.FILEPATH))
+				throw new ToolsException("Le chemin du fichier de backup n'est pas renseigné");
+			initializeContext();
+			new DBGenerateTool().execute();
+			load();
+			trtData(); 
+			createData();
+		} catch (Exception ex) {
+			throw new ToolsException(ex);
+		}
+	}
+	
+	public void load()
 	throws Exception {
-		//xmlValues = new HashMap<String, Map<String,Object>>();
 		Document doc = getBackDocument();
 		values = ArrayListMultimap.create();
 		loadDatabase(doc.getRootElement().getChild("database"));
 		System.out.println(objectsSummary);
 	}
 	
-	private static Document getBackDocument()
+	private Document getBackDocument()
 	throws Exception {
 		SAXBuilder builder = new SAXBuilder();
-		File xmlFile = new File("dbdump.xml");
+		File xmlFile = new File(getParameterValue(ParameterNames.FILEPATH));
 		Document document = (Document) builder.build(xmlFile);
 		return document;
 	}
 	
-	private static void loadDatabase(Element databaseElement)
+	private void loadDatabase(Element databaseElement)
 	throws Exception {
 		Iterator<String> it = tableList.iterator();
 		String tableName;
@@ -135,7 +122,7 @@ public class XmlBackUtils {
 		}
 	}
 	
-	private static Element getTableElement(String tableName, Element databaseElement) {
+	private Element getTableElement(String tableName, Element databaseElement) {
 		Iterator<Element> it = databaseElement.getChildren("table_data").iterator();
 		Element tableElement;
 		while (it.hasNext()) {
@@ -147,7 +134,7 @@ public class XmlBackUtils {
 		return null;
 	}
 	
-	private static void loadTable(Element tableElement)
+	private void loadTable(Element tableElement)
 	throws Exception {
 		TableContext tableContext = ModelContext.getTableContext(tableElement.getAttributeValue("name"));
 		System.out.println("Chargement des données pour la table " + tableContext.getName() + "...");
@@ -158,7 +145,7 @@ public class XmlBackUtils {
 		objectsSummary.put(tableContext.getName(), rows.size());
 	}
 	
-	private static void loadRowForTable(TableContext tableContext, Element rowElement)
+	private void loadRowForTable(TableContext tableContext, Element rowElement)
 	throws Exception {
 		Object instance = ObjectUtils.newObject(tableContext.getTableClass());
 		Iterator<Element> it = rowElement.getChildren("field").iterator();
@@ -224,22 +211,12 @@ public class XmlBackUtils {
 				if (columnContext.getType() == DBType.BOOLEAN)
 					value = false;
 			}
-			
-			/*if (columnContext.isRelationColumn()) {
-				Class<?> relationClass = columnContext.getFieldContext().getField().getType();
-				TableContext tableCtx = ModelContext.getTableContext(relationClass);
-				Map<Integer,Integer> equivalencesId = equivalences.row(tableCtx);
-				if (equivalencesId != null && equivalencesId.size() > 0) {
-					value = equivalencesId.get(value);
-				}
-			}*/
-			
 			ObjectUtils.setValue(instance, columnContext, value);
 		}
 		values.put(tableContext, instance);
 	}
 	
-	private static void trtData()
+	private void trtData()
 	throws Exception {
 		Iterator<TableContext> it = values.keySet().iterator();
 		Iterator<Object> itObj = null;
@@ -384,7 +361,7 @@ public class XmlBackUtils {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private static <D extends DAO<T>,T> void createData()
+	private <D extends DAO<T>,T> void createData()
 	throws Exception {
 		Map<String,Class<D>> daoClasses = new LinkedHashMap<>();
 		daoClasses.put("usr", (Class<D>)UserDAO.class);
@@ -418,9 +395,9 @@ public class XmlBackUtils {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private static <D extends DAO<T>,T> void createFor(TableContext tableContext, Class<D> clazz)
+	private <D extends DAO<T>,T> void createFor(TableContext tableContext, Class<D> clazz)
 	throws Exception {
-		D dao = DAOManager.getDAO(connection, clazz);
+		D dao = DAOManager.getDAO(this.connection, clazz);
 		List<T> objects = (List<T>)Lists.newArrayList(values.get(tableContext));
 		List<Integer> oldValues = new ArrayList<>();
 		List<Integer> oldTeamIds = new ArrayList<>();

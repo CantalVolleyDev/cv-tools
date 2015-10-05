@@ -1,0 +1,69 @@
+package com.jtouzy.cv.tools.model;
+
+import java.util.Arrays;
+import java.util.List;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+
+public enum ToolsList {
+	DEPLOY("Déploiement de l'application DVT/PROD", "deploy", Arrays.asList(
+		new ToolParameter(ParameterNames.WEBAPP, "Déploiement de la webapp", ParameterNames.WEBAPP, false),
+		new ToolParameter(ParameterNames.WEBAPI, "Déploiement de l'API (serveur)", ParameterNames.WEBAPI, false)
+	)),
+	IMPORT_REGISTER("Enregistrement des inscriptions depuis un fichier XML", "impreg", Arrays.asList(
+		new ToolParameter(ParameterNames.FILEPATH, "Chemin vers le fichier XML", ParameterNames.FILEPATH, true),
+		new ToolParameter(ParameterNames.SIMULATION, "Exécution en simulation?", ParameterNames.SIMULATION, false)
+	)),
+	DAY_SWITCH("Inversion de 2 journées d'un championnat", "dayswitch", Arrays.asList(
+		new ToolParameter(ParameterNames.ID, "ID du championnat", ParameterNames.ID, true),
+		new ToolParameter(ParameterNames.FIRSTDAY, "Première journée à échanger", ParameterNames.FIRSTDAY, true),
+		new ToolParameter(ParameterNames.SWITCHDAY, "Seconde journée à échanger", ParameterNames.SWITCHDAY, true)
+	)),
+	CALENDAR_GEN("Génération du calendrier d'un championnat", "calgen", Arrays.asList(
+		new ToolParameter(ParameterNames.ID, "ID du championnat", ParameterNames.ID, true),
+		new ToolParameter(ParameterNames.RETURN, "Génération des matchs retour?", ParameterNames.RETURN, false)
+	)),
+	DB_GEN("Génération des tables de la base de données", "dbgen"),
+	BACKUP("Récupération des données de l'ancienne base MySQL", "backup", Arrays.asList(
+		new ToolParameter(ParameterNames.FILEPATH, "Chemin vers le fichier XML", ParameterNames.FILEPATH, true)
+	));
+	
+	private List<ToolParameter> parameters;
+	private String description;
+	private String commandLineToolName;
+	
+	private ToolsList(String description, String commandLineToolName) {
+		this(description, commandLineToolName, null);
+	}
+	
+	private ToolsList(String description, String commandLineToolName, List<ToolParameter> params) {
+		this.parameters = params;
+		this.description = description;
+		this.commandLineToolName = commandLineToolName;
+	}
+	
+	public boolean hasParameters() {
+		return this.parameters != null && !this.parameters.isEmpty();
+	}
+
+	public List<ToolParameter> getParameters() {
+		return parameters;
+	}
+	
+	public String getDescription() {
+		return description;
+	}
+
+	public String getCommandLineToolName() {
+		return commandLineToolName;
+	}
+
+	public static ToolsList findByName(String toolName) {
+		return Iterables.find(Arrays.asList(values()), new Predicate<ToolsList>() {
+			@Override public boolean apply(ToolsList input) {
+				return input.getCommandLineToolName().equals(toolName);
+			}
+		});
+	}
+}

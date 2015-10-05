@@ -1,7 +1,5 @@
-package com.jtouzy.cv.tools.generate;
+package com.jtouzy.cv.tools.executors.dbgen;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -9,32 +7,43 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.common.collect.Lists;
-import com.jtouzy.dao.DAOManager;
+import com.jtouzy.cv.tools.errors.ToolsException;
+import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.db.DBType;
+import com.jtouzy.dao.errors.model.ContextMissingException;
 import com.jtouzy.dao.errors.model.TableContextNotFoundException;
 import com.jtouzy.dao.model.ColumnContext;
 import com.jtouzy.dao.model.ModelContext;
 import com.jtouzy.dao.model.TableContext;
 
-public class DBGenerateTool {
-
-	public static void main(String[] args)
-	throws Exception {
-		DAOManager.init("com.jtouzy.cv.model.classes");
-		Connection connection = DriverManager.getConnection("jdbc:postgresql://5.135.146.110:5432/jto_cvapi_dvt", "postgres", "jtogri%010811sqladmin");
-		createAllTables(connection);
+public class DBGenerateTool extends ToolExecutorImpl {
+	private static final Logger logger = LogManager.getLogger(DBGenerateTool.class);
+	
+	public DBGenerateTool() {
 	}
 	
-	public static final void createAllTables(Connection connection)
-	throws TableContextNotFoundException, SQLException {
-		Set<TableContext> contexts = ModelContext.getAllTableContexts();
-		for (TableContext tableContext : contexts) {
-			createTable(connection, tableContext.getTableClass());
+	@Override
+	public void execute() {
+		initializeContext();
+		createAllTables();
+	}
+	
+	public void createAllTables() {
+		try {
+			Set<TableContext> contexts = ModelContext.getAllTableContexts();
+			for (TableContext tableContext : contexts) {
+				createTable(tableContext.getTableClass());
+			}
+		} catch (ContextMissingException | SQLException ex) {
+			throw new ToolsException(ex);
 		}
 	}
 	
-	public static final void createTable(Connection connection, Class<?> clazz)
+	public void createTable(Class<?> clazz)
 	throws TableContextNotFoundException, SQLException {
 		final StringBuilder crt = new StringBuilder();
 		final StringBuilder sql = new StringBuilder();
@@ -115,7 +124,7 @@ public class DBGenerateTool {
 		   .append("grant select on ")
 		   .append(tableContext.getName())
 		   .append(" to upublic;");
-		System.out.println(crt);
+		logger.trace(crt);
 		
 		if (connection != null) {
 			Statement stmt = connection.createStatement();

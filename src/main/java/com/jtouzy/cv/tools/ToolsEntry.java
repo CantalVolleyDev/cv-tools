@@ -1,5 +1,7 @@
 package com.jtouzy.cv.tools;
 
+import java.util.NoSuchElementException;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -7,95 +9,92 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.jtouzy.cv.tools.deploy.ProductionDeployment;
-import com.jtouzy.cv.tools.errors.CLIException;
 import com.jtouzy.cv.tools.errors.ToolsException;
-import com.jtouzy.cv.tools.generate.ChampionshipGenerate;
-import com.jtouzy.cv.tools.io.register.RegisterImport;
-import com.jtouzy.cv.tools.switcher.DaySwitcher;
+import com.jtouzy.cv.tools.executors.backup.XmlBackUtils;
+import com.jtouzy.cv.tools.executors.calgen.ChampionshipCalendarGenerator;
+import com.jtouzy.cv.tools.executors.dayswitch.DaySwitcher;
+import com.jtouzy.cv.tools.executors.dbgen.DBGenerateTool;
+import com.jtouzy.cv.tools.executors.deploy.ProductionDeployment;
+import com.jtouzy.cv.tools.executors.impreg.ImportRegister;
+import com.jtouzy.cv.tools.model.ParameterNames;
+import com.jtouzy.cv.tools.model.ToolExecutor;
+import com.jtouzy.cv.tools.model.ToolsList;
 
 public class ToolsEntry {
 	private CommandLine commandLine;
 	
-	public static void main(String[] args)
-	throws ToolsException {
+	public static void main(String[] args) {
 		new ToolsEntry(args);
 	}
 	
-	public ToolsEntry(String[] args)
-	throws ToolsException {
+	public ToolsEntry(String[] args) {
 		try {
 			CommandLineParser parser = new DefaultParser();
 			commandLine = parser.parse(createOptions(), args);
-			launchTool(findTool(commandLine.getOptionValue(Commands.TOOL_OPTION)));
+			launchTool();
 		} catch (ParseException ex) {
-			throw new CLIException(ex);
+			throw new ToolsException(ex);
 		}
 	}
 	
 	public Options createOptions() {
-		Options options = new Options();
-		// -- OPTION : Identifiant de l'outil
-		Option tool = new Option(Commands.TOOL_OPTION, "Outil à lancer");
-		tool.setRequired(true);
-		tool.setArgs(1);
-		options.addOption(tool);
-		// -- OPTION : -webapp
-		options.addOption(new Option(Commands.DEPLOY_WEBAPP_OPTION, "Déploiement webapp"));
-		// -- OPTION : -webapi
-		options.addOption(new Option(Commands.DEPLOY_API_OPTION, "Déploiement api"));
-		// -- OPTION : -file
-		Option filePath = new Option(Commands.FILE_PATH, "Chemin de fichier");
-		filePath.setArgs(1);
-		options.addOption(filePath);
-		// -- OPTION : -simulation
-		options.addOption(new Option(Commands.SIMULATION, "Simulation"));
-		// -- OPTION : -id
-		Option id = new Option(Commands.ID, "Identifiant");
-		id.setArgs(1);
-		options.addOption(id);
-		// -- OPTION : -return
-		options.addOption(new Option(Commands.RETURN, "Génération du retour"));
-		// -- OPTION : -fd
-		Option fd = new Option(Commands.FIRST_DAY, "Journée pour échange");
-		fd.setArgs(1);
-		options.addOption(fd);
-		// -- OPTION : -sd
-		Option sd = new Option(Commands.SWITCH_DAY, "Journée pour échange");
-		sd.setArgs(1);
-		options.addOption(sd);
+		final Options options = new Options();
+		Option toolOption = new Option(ParameterNames.TOOL, "Outil à lancer");
+		toolOption.setRequired(true);
+		toolOption.setArgs(1);
+		options.addOption(toolOption);
+		ToolsList[] toolsList = ToolsList.values();
+		for (ToolsList tool : toolsList) {
+			if (!tool.hasParameters())
+				continue;
+			tool.getParameters().forEach(p -> {
+				Option option = new Option(p.getCommandLineName(), p.getDescription());
+				if (p.isWithValue())
+					option.setArgs(1);
+				options.addOption(option);
+			});
+		}
 		return options;
 	}
 	
-	public Tools findTool(String name)
-	throws CLIException {
-		if (name == null)
-			throw new CLIException("Outil inconnu <" + name + ">");
-		for (Tools tool : Tools.values()) {
-			if (tool.toString().equals(name.toUpperCase()))
-				return tool;
+	public void launchTool() {
+		String toolName = commandLine.getOptionValue(ParameterNames.TOOL);
+		if (toolName == null) {
+			throw new ToolsException("Outil non renseigné");
 		}
-		throw new CLIException("Outil inconnu <" + name + ">");
-	}
-	
-	public void launchTool(Tools tool)
-	throws ToolsException {
+		ToolsList tool;
+		try {
+			tool = ToolsList.findByName(toolName);
+		} catch (NoSuchElementException ex) {
+			throw new ToolsException("Outil non trouvé dans la liste existante : " + toolName);
+		}
 		ToolExecutor executor = null;
 		switch (tool) {
-			case DEPLOY:
-				executor = new ProductionDeployment(commandLine);
-				break;
-			case IMPORT_REGISTER:
-				executor = new RegisterImport(commandLine);
-				break;
-			case CHP_GEN:
-				executor = new ChampionshipGenerate(commandLine);
+			case CALENDAR_GEN:
+				executor = new ChampionshipCalendarGenerator();
 				break;
 			case DAY_SWITCH:
-				executor = new DaySwitcher(commandLine);
+				executor = new DaySwitcher();
 				break;
-			default:
-				throw new CLIException("Outil non géré <" + tool + ">");
+			case DEPLOY:
+				executor = new ProductionDeployment();
+				break;
+			case IMPORT_REGISTER:
+				executor = new ImportRegister();
+				break;
+			case DB_GEN:
+				executor = new DBGenerateTool();
+				break;
+			case BACKUP:
+				executor = new XmlBackUtils();
+				break;
+		}
+		if (executor == null) {
+			throw new ToolsException("Aucun exécutable trouvé pour : " + toolName);
+		}
+		Option[] options = commandLine.getOptions();
+		for (Option option : options) {
+			executor.registerParameter(option.getOpt(), option.getValue());
 		}
 		executor.execute();
 	}
