@@ -6,6 +6,7 @@ import com.jtouzy.cv.model.dao.UserDAO;
 import com.jtouzy.cv.security.UserPassword;
 import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.cv.tools.mail.MailBuilder;
+import com.jtouzy.cv.tools.mail.MailManager;
 import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.errors.DAOCrudException;
@@ -19,6 +20,7 @@ public class PasswordGenerator extends ToolExecutorImpl {
 	@Override
 	public void execute() {
 		initializeContext();
+		MailManager.init();
 		if (!hasParameter(ParameterNames.ID))
 			throw new ToolsException("Identifiant de l'utilisateur absent");
 		
