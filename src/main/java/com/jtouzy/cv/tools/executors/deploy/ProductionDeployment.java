@@ -34,6 +34,7 @@ public class ProductionDeployment extends ToolExecutorImpl {
 	private static final String WEBAPP_FTP_PASSWORD = "webapp.ftp.password";
 	private static final String DAO_PROJECT_PATH = "project.dao";
 	private static final String MODEL_PROJECT_PATH = "project.model";
+	private static final String TOOL_PROJECT_PATH = "project.tools";
 	private static final String API_PROJECT_PATH = "project.api";
 	private static final String UTILS_PROJECT_PATH = "project.utils";
 	private static final String WEBAPP_PROJECT_PATH = "project.app";
@@ -73,7 +74,7 @@ public class ProductionDeployment extends ToolExecutorImpl {
 	
 	private void buildLocalProjects()
 	throws IOException {
-		launchMaven(UTILS_PROJECT_PATH, DAO_PROJECT_PATH, MODEL_PROJECT_PATH, API_PROJECT_PATH);
+		launchMaven(UTILS_PROJECT_PATH, DAO_PROJECT_PATH, MODEL_PROJECT_PATH, TOOL_PROJECT_PATH, API_PROJECT_PATH);
 	}
 	
 	private void uploadWebAPIProject()
