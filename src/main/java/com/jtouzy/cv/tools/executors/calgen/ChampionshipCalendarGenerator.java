@@ -256,7 +256,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 			match2.setFirstTeam(match.getSecondTeam());
 			match2.setSecondTeam(match.getFirstTeam());
 			match2.setStep(j);
-			seasonTeam = match.getFirstTeam();
+			seasonTeam = match2.getFirstTeam();
 			match2.setDate(weeks.get(j-1)
 					            .getWeekDate()
 					            .plusDays(seasonTeam.getDate().getDayOfWeek().getValue() - 1)
