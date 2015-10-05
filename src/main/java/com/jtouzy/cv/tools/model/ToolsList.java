@@ -28,6 +28,9 @@ public enum ToolsList {
 	DB_GEN("Génération des tables de la base de données", "dbgen"),
 	BACKUP("Récupération des données de l'ancienne base MySQL", "backup", Arrays.asList(
 		new ToolParameter(ParameterNames.FILEPATH, "Chemin vers le fichier XML", ParameterNames.FILEPATH, true)
+	)),
+	PWD_GEN("Génération d'un mot de passe pour un utilisateur", "pwdgen", Arrays.asList(
+		new ToolParameter(ParameterNames.ID, "ID de l'utilisateur", ParameterNames.ID, true)
 	));
 	
 	private List<ToolParameter> parameters;
