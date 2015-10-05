@@ -35,6 +35,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 	private Integer dayCount;
 	private Integer realDayCount;
 	private boolean returnMatchs;
+	private boolean simulation;
 	private List<Match> matchs;
 	private List<SeasonTeam> seasonTeams;
 	
@@ -55,6 +56,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 			initializeContext();
 			this.championshipId = Integer.parseInt(championshipID);
 			this.returnMatchs = returnMatchs;
+			this.simulation = hasParameter(ParameterNames.SIMULATION);
 			generate();
 		} catch (Exception ex) {
 			throw new ToolsException(ex);
@@ -64,12 +66,15 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 	public void generate()
 	throws CalendarGenerationException, DAOCrudException, DataValidationException, DAOInstantiationException {
 		try {
-			connection.setAutoCommit(false);
+			if (!simulation)
+				connection.setAutoCommit(false);
 			buildCalendar();
-			MatchDAO dao = DAOManager.getDAO(connection, MatchDAO.class);
-			dao.create(matchs);
-			connection.commit();
-			connection.setAutoCommit(true);
+			if (!simulation) {
+				MatchDAO dao = DAOManager.getDAO(connection, MatchDAO.class);
+				dao.create(matchs);
+				connection.commit();
+				connection.setAutoCommit(true);
+			}
 		} catch (DAOCrudException | DataValidationException | DAOInstantiationException | SQLException ex) {
 			try {
 				if (!connection.getAutoCommit()) {
@@ -88,7 +93,11 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 			   team2.getTeam().getLabel().equals("Exempt");
 	}
 	
-	private void buildCalendar()
+	public List<Match> getMatchs() {
+		return this.matchs;
+	}
+	
+	public List<Match> buildCalendar()
 	throws CalendarGenerationException {
 		// -> Recherche des infos championnat + équipes pour le championnat + saison associée
 		findChampionshipMainData();
@@ -112,6 +121,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 		
 		// -> Génération des matchs
 		calculateCalendar();
+		return this.matchs;
 	}
 	
 	private void findChampionshipMainData()

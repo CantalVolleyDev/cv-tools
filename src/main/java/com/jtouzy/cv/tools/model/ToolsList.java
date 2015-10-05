@@ -22,7 +22,8 @@ public enum ToolsList {
 	)),
 	CALENDAR_GEN("Génération du calendrier d'un championnat", "calgen", Arrays.asList(
 		new ToolParameter(ParameterNames.ID, "ID du championnat", ParameterNames.ID, true),
-		new ToolParameter(ParameterNames.RETURN, "Génération des matchs retour?", ParameterNames.RETURN, false)
+		new ToolParameter(ParameterNames.RETURN, "Génération des matchs retour?", ParameterNames.RETURN, false),
+		new ToolParameter(ParameterNames.SIMULATION, "Exécution en simulation?", ParameterNames.SIMULATION, false)
 	)),
 	DB_GEN("Génération des tables de la base de données", "dbgen"),
 	BACKUP("Récupération des données de l'ancienne base MySQL", "backup", Arrays.asList(

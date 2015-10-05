@@ -33,6 +33,16 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 	}
 	
 	@Override
+	public void setConnection(Connection connection) {
+		this.connection = connection;
+	}
+	
+	@Override
+	public void registerParameters(Map<String,String> parameters) {
+		this.parameters.putAll(parameters);
+	}
+	
+	@Override
 	public void registerParameter(String parameterName, String parameterValue) {
 		this.parameters.put(parameterName, parameterValue);
 	}

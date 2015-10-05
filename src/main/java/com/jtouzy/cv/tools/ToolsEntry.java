@@ -10,12 +10,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import com.jtouzy.cv.tools.errors.ToolsException;
-import com.jtouzy.cv.tools.executors.backup.XmlBackUtils;
-import com.jtouzy.cv.tools.executors.calgen.ChampionshipCalendarGenerator;
-import com.jtouzy.cv.tools.executors.dayswitch.DaySwitcher;
-import com.jtouzy.cv.tools.executors.dbgen.DBGenerateTool;
-import com.jtouzy.cv.tools.executors.deploy.ProductionDeployment;
-import com.jtouzy.cv.tools.executors.impreg.ImportRegister;
 import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutor;
 import com.jtouzy.cv.tools.model.ToolsList;
@@ -68,30 +62,7 @@ public class ToolsEntry {
 		} catch (NoSuchElementException ex) {
 			throw new ToolsException("Outil non trouvé dans la liste existante : " + toolName);
 		}
-		ToolExecutor executor = null;
-		switch (tool) {
-			case CALENDAR_GEN:
-				executor = new ChampionshipCalendarGenerator();
-				break;
-			case DAY_SWITCH:
-				executor = new DaySwitcher();
-				break;
-			case DEPLOY:
-				executor = new ProductionDeployment();
-				break;
-			case IMPORT_REGISTER:
-				executor = new ImportRegister();
-				break;
-			case DB_GEN:
-				executor = new DBGenerateTool();
-				break;
-			case BACKUP:
-				executor = new XmlBackUtils();
-				break;
-		}
-		if (executor == null) {
-			throw new ToolsException("Aucun exécutable trouvé pour : " + toolName);
-		}
+		ToolExecutor executor = ToolLauncher.findExecutor(tool);
 		Option[] options = commandLine.getOptions();
 		for (Option option : options) {
 			executor.registerParameter(option.getOpt(), option.getValue());
