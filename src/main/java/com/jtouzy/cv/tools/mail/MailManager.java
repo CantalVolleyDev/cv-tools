@@ -15,6 +15,9 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.jtouzy.cv.config.PropertiesNames;
 import com.jtouzy.cv.config.PropertiesReader;
 import com.jtouzy.cv.tools.errors.MailSendingException;
@@ -22,6 +25,7 @@ import com.jtouzy.cv.tools.errors.MailSendingException;
 public class MailManager {
 	private static boolean initialized = false;
 	private static Session session;
+	private static final Logger logger = LogManager.getLogger(MailManager.class);
 	
 	public static void init() {
 		if (initialized)
@@ -53,6 +57,8 @@ public class MailManager {
 	public static void sendMail(List<String> destinations, String subject, String text) {
 		if (!initialized)
 			throw new MailSendingException("Configuration de l'envoi de mail inexistante");
+		
+		logger.trace("Envoi de mail aux adresses : " + destinations);
 		try {
 			Message message = new MimeMessage(session);
 			message.setFrom(new InternetAddress("contact@cantalvolley.fr", "CantalVolley Webmailing"));
