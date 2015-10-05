@@ -5,7 +5,7 @@ import com.jtouzy.cv.model.classes.User;
 import com.jtouzy.cv.model.dao.UserDAO;
 import com.jtouzy.cv.security.UserPassword;
 import com.jtouzy.cv.tools.errors.ToolsException;
-import com.jtouzy.cv.tools.mail.MailManager;
+import com.jtouzy.cv.tools.mail.MailBuilder;
 import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.errors.DAOCrudException;
@@ -30,9 +30,8 @@ public class PasswordGenerator extends ToolExecutorImpl {
 		if (Strings.isNullOrEmpty(mail))
 			throw new ToolsException("L'utilisateur ne possède pas d'adresse mail, aucune génération de mot de passe");
 
-		user.setPassword(UserPassword.buildString());
-		String mailContent = getNewPasswordMail(user);
-		user.setPassword(UserPassword.getFullHashedNewPassword(user.getPassword()));
+		String newPassword = UserPassword.buildString();
+		user.setPassword(UserPassword.getFullHashedNewPassword(newPassword));
 		
 		try {
 			userDao.update(user);
@@ -40,7 +39,7 @@ public class PasswordGenerator extends ToolExecutorImpl {
 			throw new ToolsException(ex); 
 		}
 		
-		MailManager.sendMail(mail, "[CantalVolley.fr] Nouveau mot de passe", mailContent);
+		MailBuilder.sendMailAutoPassword(user, newPassword);
 	}
 	
 	public User getUser() {
@@ -50,24 +49,5 @@ public class PasswordGenerator extends ToolExecutorImpl {
 		} catch (DAOInstantiationException | QueryException ex) {
 			throw new ToolsException(ex);
 		}
-	}
-	
-	private final String getNewPasswordMail(User user) {
-		StringBuilder mail = new StringBuilder();
-		mail.append("Bonjour ")
-		    .append(user.getFirstName())
-		    .append(",\n\n")
-		    .append("Suite à votre inscription au championnat 4x4 organisé par le comité départemental ")
-		    .append("de volley-ball, un mot de passe vous a été attribué pour pouvoir vous connecter au site ")
-		    .append("http://cantalvolley.fr\n")
-		    .append("Ce mot de passe est le suivant : ")
-		    .append(user.getPassword())
-		    .append("\n")
-		    .append("Conservez bien votre mot de passe, il vous servira ensuite à saisir les scores de vos matchs.\n\n")
-		    .append("Cordialement,\n")
-		    .append("Le Comité Départemental\n\n")
-		    .append("NB : Cet e-mail est automatique. Pour d'éventuels problèmes ou questions, vous pouvez répondre à ")
-		    .append("l'adresse d'expédition, un membre du comité prendra en charge votre demande.");
-		return mail.toString();
 	}
 }
