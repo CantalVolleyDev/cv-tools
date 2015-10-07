@@ -31,6 +31,14 @@ public enum ToolsList {
 	)),
 	PWD_GEN("Génération d'un mot de passe pour un utilisateur", "pwdgen", Arrays.asList(
 		new ToolParameter(ParameterNames.ID, "ID de l'utilisateur", ParameterNames.ID, true)
+	)),
+	ESJ_GEN("Enregistrement d'un utilisateur pour une équipe/saison", "esjgen", Arrays.asList(
+		new ToolParameter(ParameterNames.ID, "ID de l'équipe", ParameterNames.ID, true),
+		new ToolParameter(ParameterNames.IDU, "ID de l'utilisateur", ParameterNames.IDU, true),
+		new ToolParameter(ParameterNames.NAME, "Nom de l'utilisateur", ParameterNames.NAME, true),
+		new ToolParameter(ParameterNames.FIRSTNAME, "Prénom de l'utilisateur", ParameterNames.FIRSTNAME, true),
+		new ToolParameter(ParameterNames.TEL, "Téléphone de l'utilisateur", ParameterNames.TEL, true),
+		new ToolParameter(ParameterNames.MAIL, "E-mail de l'utilisateur", ParameterNames.MAIL, true)
 	));
 	
 	private List<ToolParameter> parameters;
