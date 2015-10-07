@@ -13,6 +13,7 @@ import com.jtouzy.cv.tools.executors.deploy.ProductionDeployment;
 import com.jtouzy.cv.tools.executors.esjreg.TeamPlayerRegister;
 import com.jtouzy.cv.tools.executors.impreg.ImportRegister;
 import com.jtouzy.cv.tools.executors.pwdgen.PasswordGenerator;
+import com.jtouzy.cv.tools.executors.updinf.UpdateTeamInformations;
 import com.jtouzy.cv.tools.model.ToolExecutor;
 import com.jtouzy.cv.tools.model.ToolsList;
 
@@ -54,6 +55,9 @@ public class ToolLauncher {
 				break;
 			case ESJ_GEN:
 				executor = new TeamPlayerRegister();
+				break;
+			case UPD_TEAM_INFOS:
+				executor = new UpdateTeamInformations();
 				break;
 		}
 		if (executor == null) {

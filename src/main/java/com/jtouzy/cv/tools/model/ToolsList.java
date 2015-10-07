@@ -40,6 +40,11 @@ public enum ToolsList {
 		new ToolParameter(ParameterNames.TEL, "Téléphone de l'utilisateur", ParameterNames.TEL, true),
 		new ToolParameter(ParameterNames.MAIL, "E-mail de l'utilisateur", ParameterNames.MAIL, true),
 		new ToolParameter(ParameterNames.GENDER, "Genre de l'utilisateur", ParameterNames.GENDER, true)
+	)),
+	UPD_TEAM_INFOS("Mise à jour informations d'équipe", "updinf", Arrays.asList(
+		new ToolParameter(ParameterNames.ID, "ID de l'équipe", ParameterNames.ID, true),
+		new ToolParameter(ParameterNames.DATE, "Nouvelle date de match", ParameterNames.DATE, true),
+		new ToolParameter(ParameterNames.GYM, "Nouveau gymnase de match", ParameterNames.GYM, true)
 	));
 	
 	private List<ToolParameter> parameters;

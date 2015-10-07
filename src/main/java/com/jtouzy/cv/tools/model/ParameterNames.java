@@ -16,4 +16,6 @@ public class ParameterNames {
 	public static final String MAIL = "mail";
 	public static final String IDU = "idu";
 	public static final String GENDER = "gender";
+	public static final String DATE = "date";
+	public static final String GYM = "gym";
 }
