@@ -46,6 +46,8 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 				throw new ToolsException("Nom de l'utilisateur absent");
 			if (!hasParameter(ParameterNames.FIRSTNAME))
 				throw new ToolsException("Prénom de l'utilisateur absent");
+			if (!hasParameter(ParameterNames.GENDER))
+				throw new ToolsException("Genre de l'utilisateur absent");
 		}
 	}
 	
@@ -75,6 +77,8 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 				} else {
 					logger.trace("Nouvel utilisateur à créer");
 					targetUser = new User();
+					targetUser.setAdministrator(false);
+					targetUser.setImage(null);
 				}
 			}
 		} catch (DAOInstantiationException | QueryException ex) {
@@ -100,6 +104,10 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 				logger.trace("Mise à jour du téléphone");
 				targetUser.setPhone(getParameterValue(ParameterNames.TEL));
 			}
+			if (hasParameter(ParameterNames.GENDER)) {
+				logger.trace("Mise à jour du genre");
+				targetUser.setGender(User.Gender.valueOf(getParameterValue(ParameterNames.GENDER)));
+			}
 			
 			this.connection.setAutoCommit(false);
 			targetUser = getDAO(UserDAO.class).createOrUpdate(targetUser);
@@ -123,16 +131,17 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 						throw new ToolsException("L'utilisateur existe déjà dans l'équipe! Aucune modification n'as été faite");
 					}
 				}
-			} else {
-				logger.trace("Création de l'utilisateur/équipe");
-				SeasonTeam team = new SeasonTeam();
-				team.setIdentifier(teamId);
-				SeasonTeamPlayer stp = new SeasonTeamPlayer();
-				stp.setManager(false);
-				stp.setPlayer(targetUser);
-				stp.setTeam(team);
-				getDAO(SeasonTeamPlayerDAO.class).create(stp);
 			}
+				
+			logger.trace("Création de l'utilisateur/équipe");
+			SeasonTeam team = new SeasonTeam();
+			team.setIdentifier(teamId);
+			SeasonTeamPlayer stp = new SeasonTeamPlayer();
+			stp.setManager(false);
+			stp.setPlayer(targetUser);
+			stp.setTeam(team);
+			getDAO(SeasonTeamPlayerDAO.class).create(stp);
+			
 			this.connection.commit();
 			this.connection.setAutoCommit(true);
 		} catch (DAOInstantiationException | DAOCrudException | DataValidationException | SQLException | ToolsException | QueryException ex) {

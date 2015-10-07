@@ -38,7 +38,8 @@ public enum ToolsList {
 		new ToolParameter(ParameterNames.NAME, "Nom de l'utilisateur", ParameterNames.NAME, true),
 		new ToolParameter(ParameterNames.FIRSTNAME, "Prénom de l'utilisateur", ParameterNames.FIRSTNAME, true),
 		new ToolParameter(ParameterNames.TEL, "Téléphone de l'utilisateur", ParameterNames.TEL, true),
-		new ToolParameter(ParameterNames.MAIL, "E-mail de l'utilisateur", ParameterNames.MAIL, true)
+		new ToolParameter(ParameterNames.MAIL, "E-mail de l'utilisateur", ParameterNames.MAIL, true),
+		new ToolParameter(ParameterNames.GENDER, "Genre de l'utilisateur", ParameterNames.GENDER, true)
 	));
 	
 	private List<ToolParameter> parameters;

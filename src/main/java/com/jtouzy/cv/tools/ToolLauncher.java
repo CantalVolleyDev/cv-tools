@@ -10,6 +10,7 @@ import com.jtouzy.cv.tools.executors.calgen.ChampionshipCalendarGenerator;
 import com.jtouzy.cv.tools.executors.dayswitch.DaySwitcher;
 import com.jtouzy.cv.tools.executors.dbgen.DBGenerateTool;
 import com.jtouzy.cv.tools.executors.deploy.ProductionDeployment;
+import com.jtouzy.cv.tools.executors.esjreg.TeamPlayerRegister;
 import com.jtouzy.cv.tools.executors.impreg.ImportRegister;
 import com.jtouzy.cv.tools.executors.pwdgen.PasswordGenerator;
 import com.jtouzy.cv.tools.model.ToolExecutor;
@@ -50,6 +51,9 @@ public class ToolLauncher {
 				break;
 			case PWD_GEN:
 				executor = new PasswordGenerator();
+				break;
+			case ESJ_GEN:
+				executor = new TeamPlayerRegister();
 				break;
 		}
 		if (executor == null) {
