@@ -81,6 +81,11 @@ public class ToolLauncher {
 		return this;
 	}
 	
+	public ToolLauncher addParameters(Map<String,String> parameters) {
+		this.parameters.putAll(parameters);
+		return this;
+	}
+	
 	public ToolExecutor instance() {
 		return getExecutor();
 	}
