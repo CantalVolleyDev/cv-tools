@@ -4,7 +4,7 @@
 
   <groupId>com.jtouzy</groupId>
   <artifactId>cv-tools</artifactId>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
   <packaging>jar</packaging>
 
   <name>cv-tools</name>
@@ -78,7 +78,68 @@
           		</execution>
         	</executions>
       	</plugin>
+      	<!-- MANUALLY:PLUGIN POUR JAR EXECUTABLE -->
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>2.6</version>
+            <configuration>
+				<archive>
+					<manifest>
+						<mainClass>com.jtouzy.cv.tools.ToolsEntry</mainClass>
+						<addClasspath>true</addClasspath>
+						<classpathPrefix>lib</classpathPrefix>
+                  	</manifest>
+				</archive>
+            </configuration>
+		</plugin>
+		<!-- MANUALLY:COPIE DES DEPENDANCES DE JAR -->
+      	<plugin> 
+			<artifactId>maven-dependency-plugin</artifactId> 
+			<executions> 
+				<execution> 
+					<id>copy-dependencies</id>
+					<phase>prepare-package</phase> 
+					<goals> 
+						<goal>copy-dependencies</goal> 
+					</goals> 
+					<configuration> 
+						<outputDirectory>${project.build.directory}/lib</outputDirectory> 
+					</configuration> 
+				</execution> 
+			</executions> 
+		</plugin>
 	</plugins>
+	<!-- PLUGINS: Ignore execution -->
+	<pluginManagement>
+		<plugins>
+    		<plugin>
+        		<groupId>org.eclipse.m2e</groupId>
+        		<artifactId>lifecycle-mapping</artifactId>
+        		<version>1.0.0</version>
+        		<configuration>
+            		<lifecycleMappingMetadata>
+                		<pluginExecutions>
+                    		<!-- copy-dependency plugin -->
+                    		<pluginExecution>
+                        		<pluginExecutionFilter>
+                            		<groupId>org.apache.maven.plugins</groupId>
+                            		<artifactId>maven-dependency-plugin</artifactId>
+                            		<versionRange>[1.0.0,)</versionRange>
+                            		<goals>
+                                		<goal>copy-dependencies</goal>
+                            		</goals>
+                       			</pluginExecutionFilter>
+                        		<action>
+                            		<ignore />
+                        		</action>
+                    		</pluginExecution>
+                		</pluginExecutions>
+            		</lifecycleMappingMetadata>
+        		</configuration>
+    		</plugin>
+   		</plugins>
+	</pluginManagement>
   </build>
   
   <dependencyManagement>
