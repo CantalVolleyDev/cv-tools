@@ -93,7 +93,7 @@ public class UpdateTeamInformations extends ToolExecutorImpl {
 								.stream()
 								.filter(m -> {
 									return m.getState() == Match.State.C && 
-										   seasonTeam.getIdentifier() == m.getFirstTeam().getIdentifier(); 
+										   seasonTeam.getIdentifier().equals(m.getFirstTeam().getIdentifier()); 
 								})
 								.collect(Collectors.toList());
 			

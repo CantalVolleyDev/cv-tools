@@ -50,10 +50,10 @@ public class DaySwitcher extends ToolExecutorImpl {
 			MatchDAO dao = DAOManager.getDAO(this.connection, MatchDAO.class);
 			List<Match> matchs = dao.getAllByChampionship(this.championshipId);
 			List<Match> firstDayMatchs = matchs.stream()
-					                           .filter(m -> m.getStep() == firstDay)
+					                           .filter(m -> m.getStep().equals(firstDay))
 					                           .collect(Collectors.toList());
 			List<Match> switchDayMatchs = matchs.stream()
-                    							.filter(m -> m.getStep() == dayToSwitch)
+                    							.filter(m -> m.getStep().equals(dayToSwitch))
                 								.collect(Collectors.toList());
 			List<ChampionshipWeeks> weeks = DAOManager.getDAO(this.connection, ChampionshipWeeksDAO.class)
 					                                  .getAllByChampionship(this.championshipId);

@@ -127,7 +127,7 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 				logger.trace("L'utilisateur est déjà présent dans une équipe cette année");
 				Iterator<SeasonTeamPlayer> it = stpList.iterator();
 				while (it.hasNext()) {
-					if (it.next().getTeam().getIdentifier() == teamId) {
+					if (it.next().getTeam().getIdentifier().equals(teamId)) {
 						throw new ToolsException("L'utilisateur existe déjà dans l'équipe! Aucune modification n'as été faite");
 					}
 				}
