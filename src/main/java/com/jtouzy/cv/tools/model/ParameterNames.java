@@ -18,4 +18,6 @@ public class ParameterNames {
 	public static final String GENDER = "gender";
 	public static final String DATE = "date";
 	public static final String GYM = "gym";
+	public static final String DVT = "dvt";
+	public static final String PROD = "prod";
 }

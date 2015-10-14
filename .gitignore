@@ -2,7 +2,8 @@
 /target/
 .classpath
 .project
-tomcat-deploy.commands
+tomcat-deploy-dvt.commands
+tomcat-deploy-prod.commands
 tools.properties
 dbdump.xml
 importRegister.xml

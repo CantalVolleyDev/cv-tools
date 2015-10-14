@@ -20,6 +20,17 @@ public class PropertiesNames {
 	// -----------------------------------------------------------
 	public static final String GLOBAL_PASSWORD = "global.password";
 	// -----------------------------------------------------------
+	// Chemin d'upload des fichiers
+	// -----------------------------------------------------------
+	public static final String FILE_UPLOAD_PATH = "file.upload";
+	public static final String FILE_REMOTE_UPLOAD_PATH = "file.remote.upload";
+	// -----------------------------------------------------------
+	// Accès FTP au serveur du client
+	// -----------------------------------------------------------
+	public static final String WEBAPP_FTP_HOST = "webapp.ftp.host";
+	public static final String WEBAPP_FTP_USER = "webapp.ftp.user";
+	public static final String WEBAPP_FTP_PASSWORD = "webapp.ftp.password";
+	// -----------------------------------------------------------
 	// Propriétés pour l'envoi de mails
 	// -----------------------------------------------------------
 	public static final String MAIL_SMTP_HOST = "mail.smtp.host";
