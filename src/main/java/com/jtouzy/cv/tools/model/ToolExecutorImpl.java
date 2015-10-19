@@ -22,6 +22,8 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 	protected Connection connection;
 	private Map<String, String> parameters;
 	private static final Logger logger = LogManager.getLogger(ToolExecutorImpl.class);
+	private static final String DB_DVT_DATABASE = "db.database.dvt";
+	private static final String DB_PROD_DATABASE = "db.database.prod";
 	
 	public ToolExecutorImpl(Connection connection) {
 		this.connection = connection;
@@ -30,6 +32,20 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 	
 	public ToolExecutorImpl() {
 		this(null);
+	}
+	
+	@Override
+	public void preControl() {
+		if (this.connection == null) {
+			if (!this.hasParameter(ParameterNames.DVT) &&
+				!this.hasParameter(ParameterNames.PROD)) {
+				throw new ToolsException("Le paramètre DVT ou PROD doit être obligatoirement présent");
+			}
+			if (this.hasParameter(ParameterNames.DVT) &&
+				this.hasParameter(ParameterNames.PROD)) {
+				throw new ToolsException("Les paramètres DVT et PROD ne doivent pas être présents ensemble");
+			}
+		}
 	}
 	
 	@Override
@@ -63,8 +79,15 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 			initializeProperties();
 			DAOManager.init("com.jtouzy.cv.model.classes");
 			if (connection == null) {
+				String databaseName = null;
+				if (hasParameter(ParameterNames.DVT))
+					databaseName = PropertiesReader.getProperty(DB_DVT_DATABASE);
+				else if (hasParameter(ParameterNames.PROD))
+					databaseName = PropertiesReader.getProperty(DB_PROD_DATABASE);
+				if (databaseName == null)
+					throw new ToolsException("Impossible d'établir une connexion : La base de données n'est pas précisée");
 				connection = 
-						DriverManager.getConnection(PropertiesReader.getJDBCUrl(),
+						DriverManager.getConnection(PropertiesReader.getJDBCUrlWithDatabase(databaseName),
 										    		PropertiesReader.getProperty(PropertiesNames.DB_ADMIN_USER_PROPERTY),
 										    		PropertiesReader.getProperty(PropertiesNames.DB_ADMIN_PASSWORD_PROPERTY));
 			}

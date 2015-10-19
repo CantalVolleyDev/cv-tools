@@ -37,6 +37,8 @@ public class ToolsEntry {
 		toolOption.setRequired(true);
 		toolOption.setArgs(1);
 		options.addOption(toolOption);
+		options.addOption(new Option(ParameterNames.DVT, "Base DVT"));
+		options.addOption(new Option(ParameterNames.DVT, "Base PRODUCTION"));
 		ToolsList[] toolsList = ToolsList.values();
 		for (ToolsList tool : toolsList) {
 			if (!tool.hasParameters())
@@ -67,6 +69,7 @@ public class ToolsEntry {
 		for (Option option : options) {
 			executor.registerParameter(option.getOpt(), option.getValue());
 		}
+		executor.preControl();
 		executor.execute();
 	}
 }

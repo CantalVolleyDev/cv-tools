@@ -9,5 +9,6 @@ public interface ToolExecutor {
 	public void registerParameter(String parameterName, String parameterValue);
 	public void registerParameters(Map<String,String> parameters);
 	public String getParameterValue(String parameterName);
+	public void preControl();
 	public void execute();
 }

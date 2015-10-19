@@ -9,9 +9,7 @@ import com.google.common.collect.Iterables;
 public enum ToolsList {
 	DEPLOY("Déploiement de l'application DVT/PROD", "deploy", Arrays.asList(
 		new ToolParameter(ParameterNames.WEBAPP, "Déploiement de la webapp", ParameterNames.WEBAPP, false),
-		new ToolParameter(ParameterNames.WEBAPI, "Déploiement de l'API (serveur)", ParameterNames.WEBAPI, false),
-		new ToolParameter(ParameterNames.DVT, "Déploiement en DVT", ParameterNames.DVT, false),
-		new ToolParameter(ParameterNames.PROD, "Déploiement en production", ParameterNames.PROD, false)
+		new ToolParameter(ParameterNames.WEBAPI, "Déploiement de l'API (serveur)", ParameterNames.WEBAPI, false)
 	)),
 	IMPORT_REGISTER("Enregistrement des inscriptions depuis un fichier XML", "impreg", Arrays.asList(
 		new ToolParameter(ParameterNames.FILEPATH, "Chemin vers le fichier XML", ParameterNames.FILEPATH, true),

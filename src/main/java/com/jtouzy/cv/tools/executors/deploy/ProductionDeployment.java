@@ -49,12 +49,7 @@ public class ProductionDeployment extends ToolExecutorImpl {
 	@Override
 	public void execute() {
 		try {
-			initializeProperties();
-			if (!hasParameter(ParameterNames.DVT) && !hasParameter(ParameterNames.PROD))
-				throw new ToolsException("Précisez le niveau de déploiement (DVT/PROD)");
-			if (hasParameter(ParameterNames.DVT) && hasParameter(ParameterNames.PROD))
-				throw new ToolsException("Un seul niveau doit être précisé (DVT/PROD)");
-			
+			initializeProperties();			
 			if (hasParameter(ParameterNames.WEBAPI)) {
 				deployWebAPI();
 			}

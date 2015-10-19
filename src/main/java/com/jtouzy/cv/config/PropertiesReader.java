@@ -30,10 +30,14 @@ public class PropertiesReader {
 	}
 	
 	public static String getJDBCUrl() {
+		return getJDBCUrlWithDatabase(properties.getProperty(PropertiesNames.DB_DATABASE_PROPERTY));
+	}
+	
+	public static String getJDBCUrlWithDatabase(String databaseName) {
 		return new StringBuilder()
 				.append(properties.getProperty(PropertiesNames.DB_JDBCURL_PROPERTY))
 				.append("/")
-				.append(properties.getProperty(PropertiesNames.DB_DATABASE_PROPERTY))
+				.append(databaseName)
 				.toString();
 	}
 }

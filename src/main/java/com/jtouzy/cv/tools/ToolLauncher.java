@@ -92,6 +92,7 @@ public class ToolLauncher {
 	
 	public ToolLauncher run() {
 		getExecutor();
+		executor.preControl();
 		executor.execute();
 		return this;
 	}
