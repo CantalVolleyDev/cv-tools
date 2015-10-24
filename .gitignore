@@ -2,6 +2,8 @@
 /target/
 .classpath
 .project
+apache-deploy-dvt.commands
+apache-deploy-prod.commands
 tomcat-deploy-dvt.commands
 tomcat-deploy-prod.commands
 tools.properties

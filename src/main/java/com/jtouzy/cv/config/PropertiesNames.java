@@ -24,6 +24,7 @@ public class PropertiesNames {
 	// -----------------------------------------------------------
 	public static final String FILE_UPLOAD_PATH = "file.upload";
 	public static final String FILE_REMOTE_UPLOAD_PATH = "file.remote.upload";
+	public static final String FILE_UPLOADED_URL = "file.upload.url";
 	// -----------------------------------------------------------
 	// Accès FTP au serveur du client
 	// -----------------------------------------------------------

@@ -12,6 +12,7 @@ import com.jtouzy.cv.tools.executors.dbgen.DBGenerateTool;
 import com.jtouzy.cv.tools.executors.deploy.ProductionDeployment;
 import com.jtouzy.cv.tools.executors.esjreg.TeamPlayerRegister;
 import com.jtouzy.cv.tools.executors.impreg.ImportRegister;
+import com.jtouzy.cv.tools.executors.install.Install;
 import com.jtouzy.cv.tools.executors.pwdgen.PasswordGenerator;
 import com.jtouzy.cv.tools.executors.updinf.UpdateTeamInformations;
 import com.jtouzy.cv.tools.model.ToolExecutor;
@@ -40,6 +41,9 @@ public class ToolLauncher {
 				break;
 			case DEPLOY:
 				executor = new ProductionDeployment();
+				break;
+			case INSTALL:
+				executor = new Install();
 				break;
 			case IMPORT_REGISTER:
 				executor = new ImportRegister();

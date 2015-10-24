@@ -11,6 +11,10 @@ public enum ToolsList {
 		new ToolParameter(ParameterNames.WEBAPP, "Déploiement de la webapp", ParameterNames.WEBAPP, false),
 		new ToolParameter(ParameterNames.WEBAPI, "Déploiement de l'API (serveur)", ParameterNames.WEBAPI, false)
 	)),
+	INSTALL("Déploiement de l'application DVT/PROD", "install", Arrays.asList(
+		new ToolParameter(ParameterNames.WEBAPP, "Installation de la webapp", ParameterNames.WEBAPP, false),
+		new ToolParameter(ParameterNames.WEBAPI, "Installation de l'API (serveur)", ParameterNames.WEBAPI, false)
+	)),
 	IMPORT_REGISTER("Enregistrement des inscriptions depuis un fichier XML", "impreg", Arrays.asList(
 		new ToolParameter(ParameterNames.FILEPATH, "Chemin vers le fichier XML", ParameterNames.FILEPATH, true),
 		new ToolParameter(ParameterNames.SIMULATION, "Exécution en simulation?", ParameterNames.SIMULATION, false)
