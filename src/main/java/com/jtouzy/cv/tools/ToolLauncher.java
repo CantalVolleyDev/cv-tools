@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.jtouzy.cv.tools.errors.ToolsException;
-import com.jtouzy.cv.tools.executors.backup.XmlBackUtils;
 import com.jtouzy.cv.tools.executors.calgen.ChampionshipCalendarGenerator;
 import com.jtouzy.cv.tools.executors.dayswitch.DaySwitcher;
 import com.jtouzy.cv.tools.executors.dbgen.DBGenerateTool;
@@ -50,9 +49,6 @@ public class ToolLauncher {
 				break;
 			case DB_GEN:
 				executor = new DBGenerateTool();
-				break;
-			case BACKUP:
-				executor = new XmlBackUtils();
 				break;
 			case PWD_GEN:
 				executor = new PasswordGenerator();
