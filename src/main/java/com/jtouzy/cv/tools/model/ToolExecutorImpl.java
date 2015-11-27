@@ -15,8 +15,6 @@ import com.jtouzy.cv.config.PropertiesReader;
 import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.dao.DAO;
 import com.jtouzy.dao.DAOManager;
-import com.jtouzy.dao.errors.DAOInstantiationException;
-import com.jtouzy.dao.errors.model.ModelClassDefinitionException;
 
 public abstract class ToolExecutorImpl implements ToolExecutor {
 	protected Connection connection;
@@ -77,7 +75,7 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 		logger.trace("Initialisation du contexte...");
 		try {
 			initializeProperties();
-			DAOManager.init("com.jtouzy.cv.model.classes");
+			DAOManager.init("dao");
 			if (connection == null) {
 				String databaseName = null;
 				if (hasParameter(ParameterNames.DVT))
@@ -91,7 +89,7 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 										    		PropertiesReader.getProperty(PropertiesNames.DB_ADMIN_USER_PROPERTY),
 										    		PropertiesReader.getProperty(PropertiesNames.DB_ADMIN_PASSWORD_PROPERTY));
 			}
-		} catch (SQLException | ModelClassDefinitionException ex) {
+		} catch (SQLException ex) {
 			throw new ToolsException(ex);
 		}
 	}
@@ -104,8 +102,7 @@ public abstract class ToolExecutorImpl implements ToolExecutor {
 		}
 	}
 
-	protected <D extends DAO<T>,T> D getDAO(Class<D> daoClass)
-	throws DAOInstantiationException {
+	protected <D extends DAO<T>,T> D getDAO(Class<D> daoClass) {
 		return DAOManager.getDAO(this.connection, daoClass);
 	}
 }

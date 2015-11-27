@@ -40,9 +40,7 @@ import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.errors.DAOCrudException;
-import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
-import com.jtouzy.dao.errors.model.ModelClassDefinitionException;
 import com.jtouzy.dao.errors.validation.DataValidationException;
 
 /**
@@ -189,7 +187,7 @@ public class ImportRegister extends ToolExecutorImpl {
 			this.seasonTeamsToCreate = new ArrayList<>();
 			this.seasonTeamPlayersToCreate = new ArrayList<>();
 			this.championshipTeamsToCreate = HashMultimap.create();
-		} catch (DAOInstantiationException | QueryException | SQLException | IOException ex) {
+		} catch (QueryException | SQLException | IOException ex) {
 			throw new ToolsException(ex);
 		}
 	}
@@ -203,7 +201,7 @@ public class ImportRegister extends ToolExecutorImpl {
 		try {
 			SAXBuilder builder = new SAXBuilder();
 			File xmlFile = new File(getParameterValue(ParameterNames.FILEPATH));
-			Document document = (Document) builder.build(xmlFile);
+			Document document = builder.build(xmlFile);
 			this.rootElement = document.getRootElement();
 		} catch (JDOMException ex) {
 			throw new IOException(ex);
@@ -229,17 +227,13 @@ public class ImportRegister extends ToolExecutorImpl {
 	 */
 	private void searchUsers()
 	throws QueryException {
-		try {
-			this.usersById = new HashMap<>();
-			List<User> users = getDAO(UserDAO.class).getAll();
-			Iterator<User> itu = users.iterator();
-			User user;
-			while (itu.hasNext()) {
-				user = itu.next();
-				this.usersById.put(user.getIdentifier(), user);
-			}
-		} catch (DAOInstantiationException ex) {
-			throw new QueryException(ex);
+		this.usersById = new HashMap<>();
+		List<User> users = getDAO(UserDAO.class).getAll();
+		Iterator<User> itu = users.iterator();
+		User user;
+		while (itu.hasNext()) {
+			user = itu.next();
+			this.usersById.put(user.getIdentifier(), user);
 		}
 	}
 	
@@ -249,17 +243,13 @@ public class ImportRegister extends ToolExecutorImpl {
 	 */
 	private void searchTeams()
 	throws QueryException {
-		try {
-			this.teamsById = new HashMap<>();
-			List<Team> teams = getDAO(TeamDAO.class).getAll();
-			Iterator<Team> itt = teams.iterator();
-			Team team;
-			while (itt.hasNext()) {
-				team = itt.next();
-				this.teamsById.put(team.getIdentifier(), team);
-			}
-		} catch (DAOInstantiationException ex) {
-			throw new QueryException(ex);
+		this.teamsById = new HashMap<>();
+		List<Team> teams = getDAO(TeamDAO.class).getAll();
+		Iterator<Team> itt = teams.iterator();
+		Team team;
+		while (itt.hasNext()) {
+			team = itt.next();
+			this.teamsById.put(team.getIdentifier(), team);
 		}
 	}
 	
@@ -269,17 +259,13 @@ public class ImportRegister extends ToolExecutorImpl {
 	 */
 	private void searchGyms()
 	throws QueryException {
-		try {
-			this.gymsById = new HashMap<>();
-			List<Gym> gyms = getDAO(GymDAO.class).getAll();
-			Iterator<Gym> itt = gyms.iterator();
-			Gym gym;
-			while (itt.hasNext()) {
-				gym = itt.next();
-				this.gymsById.put(gym.getIdentifier(), gym);
-			}
-		} catch (DAOInstantiationException ex) {
-			throw new QueryException(ex);
+		this.gymsById = new HashMap<>();
+		List<Gym> gyms = getDAO(GymDAO.class).getAll();
+		Iterator<Gym> itt = gyms.iterator();
+		Gym gym;
+		while (itt.hasNext()) {
+			gym = itt.next();
+			this.gymsById.put(gym.getIdentifier(), gym);
 		}
 	}
 	
@@ -289,17 +275,13 @@ public class ImportRegister extends ToolExecutorImpl {
 	 */
 	private void searchChampionships()
 	throws QueryException {
-		try {
-			this.championshipsById = new HashMap<>();
-			List<Championship> chps = getDAO(ChampionshipDAO.class).getAll();
-			Iterator<Championship> itt = chps.iterator();
-			Championship chp;
-			while (itt.hasNext()) {
-				chp = itt.next();
-				this.championshipsById.put(chp.getIdentifier(), chp);
-			}
-		} catch (DAOInstantiationException ex) {
-			throw new QueryException(ex);
+		this.championshipsById = new HashMap<>();
+		List<Championship> chps = getDAO(ChampionshipDAO.class).getAll();
+		Iterator<Championship> itt = chps.iterator();
+		Championship chp;
+		while (itt.hasNext()) {
+			chp = itt.next();
+			this.championshipsById.put(chp.getIdentifier(), chp);
 		}
 	}
 	
@@ -354,11 +336,11 @@ public class ImportRegister extends ToolExecutorImpl {
 		Gym gymObj;
 		if (Strings.isNullOrEmpty(gym))
 			throw new ToolsException("Gymnase non précisé pour l'équipe [" + name + "]");
-		else {
-			gymObj = this.gymsById.get(Integer.parseInt(gym));
-			if (gymObj == null)
-				throw new ToolsException("Gymnase inexistant avec l'identifiant [" + gym + "]");
-		}
+		
+		gymObj = this.gymsById.get(Integer.parseInt(gym));
+		if (gymObj == null)
+			throw new ToolsException("Gymnase inexistant avec l'identifiant [" + gym + "]");
+		
 		if (Strings.isNullOrEmpty(date))
 			throw new ToolsException("Date de match non précisée pour l'équipe [" + name + "]");
 		if (Strings.isNullOrEmpty(nbp))
@@ -368,7 +350,7 @@ public class ImportRegister extends ToolExecutorImpl {
 			try {
 				Team newTeam = getDAO(TeamDAO.class).create(team);
 				team.setIdentifier(newTeam.getIdentifier());
-			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+			} catch (DAOCrudException | DataValidationException ex) {
 				throw new ToolsException(ex);
 			}
 		}
@@ -390,7 +372,7 @@ public class ImportRegister extends ToolExecutorImpl {
 		if (!simulation) {
 			try {
 				seasonTeam = getDAO(SeasonTeamDAO.class).create(seasonTeam);
-			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+			} catch (DAOCrudException | DataValidationException ex) {
 				throw new ToolsException(ex);
 			}
 		}
@@ -420,7 +402,7 @@ public class ImportRegister extends ToolExecutorImpl {
 				if (!simulation) {
 					getDAO(ChampionshipTeamDAO.class).create(ech);
 				}
-			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+			} catch (DAOCrudException | DataValidationException ex) {
 				throw new ToolsException(ex);
 			}
 		}
@@ -529,7 +511,7 @@ public class ImportRegister extends ToolExecutorImpl {
 				} else {
 					getDAO(UserDAO.class).update(user);
 				}
-			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+			} catch (DAOCrudException | DataValidationException ex) {
 				System.err.println(user);
 				throw new ToolsException(ex);
 			}
@@ -543,7 +525,7 @@ public class ImportRegister extends ToolExecutorImpl {
 		if (!simulation) {
 			try {
 				getDAO(SeasonTeamPlayerDAO.class).create(stp);
-			} catch (DAOInstantiationException | DAOCrudException | DataValidationException ex) {
+			} catch (DAOCrudException | DataValidationException ex) {
 				throw new ToolsException(ex);
 			}
 		}

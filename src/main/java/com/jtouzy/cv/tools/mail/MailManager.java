@@ -40,6 +40,7 @@ public class MailManager {
 		mailProperties.put("mail.smtp.timeout", "6000");
 		session = Session.getDefaultInstance(mailProperties, 
 			new Authenticator() {
+				@Override
 				protected PasswordAuthentication getPasswordAuthentication() {
 					return new PasswordAuthentication(PropertiesReader.getProperty(PropertiesNames.MAIL_SMTP_USER),
 													  PropertiesReader.getProperty(PropertiesNames.MAIL_SMTP_PASSWORD));

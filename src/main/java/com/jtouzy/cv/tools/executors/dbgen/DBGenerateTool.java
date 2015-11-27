@@ -14,8 +14,6 @@ import com.google.common.collect.Lists;
 import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.db.DBType;
-import com.jtouzy.dao.errors.model.ContextMissingException;
-import com.jtouzy.dao.errors.model.TableContextNotFoundException;
 import com.jtouzy.dao.model.ColumnContext;
 import com.jtouzy.dao.model.ModelContext;
 import com.jtouzy.dao.model.TableContext;
@@ -38,17 +36,17 @@ public class DBGenerateTool extends ToolExecutorImpl {
 			for (TableContext tableContext : contexts) {
 				createTable(tableContext.getTableClass());
 			}
-		} catch (ContextMissingException | SQLException ex) {
+		} catch (SQLException ex) {
 			throw new ToolsException(ex);
 		}
 	}
 	
 	public void createTable(Class<?> clazz)
-	throws TableContextNotFoundException, SQLException {
+	throws SQLException {
 		final StringBuilder crt = new StringBuilder();
 		final StringBuilder sql = new StringBuilder();
 		TableContext tableContext = ModelContext.getTableContext(clazz);
-		Collection<ColumnContext> fields = tableContext.getColumns();
+		Collection<ColumnContext> fields = tableContext.getColumns().values();
 		final Collection<ColumnContext> idFields = new ArrayList<>();
 		final Collection<ColumnContext> relationFields = new ArrayList<>();
 		crt.append("drop table if exists ")
@@ -127,8 +125,9 @@ public class DBGenerateTool extends ToolExecutorImpl {
 		logger.trace(crt);
 		
 		if (connection != null) {
-			Statement stmt = connection.createStatement();
-			stmt.execute(crt.toString());
+			try (Statement stmt = connection.createStatement()) {
+				stmt.execute(crt.toString());
+			}
 		}
 	}
 }

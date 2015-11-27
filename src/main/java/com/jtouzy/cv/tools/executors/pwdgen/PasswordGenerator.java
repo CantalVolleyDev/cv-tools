@@ -10,7 +10,6 @@ import com.jtouzy.cv.tools.mail.MailManager;
 import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.errors.DAOCrudException;
-import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
 import com.jtouzy.dao.errors.validation.DataValidationException;
 
@@ -48,7 +47,7 @@ public class PasswordGenerator extends ToolExecutorImpl {
 		try {
 			userDao = getDAO(UserDAO.class); 
 			return userDao.getOne(Integer.parseInt(getParameterValue(ParameterNames.ID)));
-		} catch (DAOInstantiationException | QueryException ex) {
+		} catch (QueryException ex) {
 			throw new ToolsException(ex);
 		}
 	}

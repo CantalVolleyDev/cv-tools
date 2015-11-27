@@ -24,7 +24,6 @@ import com.jtouzy.cv.tools.errors.ToolsException;
 import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.errors.DAOCrudException;
-import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
 import com.jtouzy.dao.errors.validation.DataValidationException;
 
@@ -78,7 +77,7 @@ public class UpdateTeamInformations extends ToolExecutorImpl {
 				st.setGym(gym);
 			}
 			seasonTeam = dao.update(st);
-		} catch (DAOInstantiationException | QueryException | DAOCrudException | DataValidationException ex) {
+		} catch (QueryException | DAOCrudException | DataValidationException ex) {
 			throw new ToolsException(ex);
 		}
 	}
@@ -125,7 +124,7 @@ public class UpdateTeamInformations extends ToolExecutorImpl {
 					                          	  .plusMinutes(date.getMinute()));
 				getDAO(MatchDAO.class).update(match);
 			}
-		} catch (DAOInstantiationException | QueryException | DataValidationException | DAOCrudException ex) {
+		} catch (QueryException | DataValidationException | DAOCrudException ex) {
 			throw new ToolsException(ex);
 		}		
 	}

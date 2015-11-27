@@ -21,7 +21,6 @@ import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.cv.tools.model.ToolsList;
 import com.jtouzy.dao.errors.DAOCrudException;
-import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
 import com.jtouzy.dao.errors.validation.DataValidationException;
 
@@ -65,23 +64,20 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 				targetUser = getDAO(UserDAO.class).getOne(Integer.parseInt(getParameterValue(ParameterNames.IDU)));
 				if (targetUser == null)
 					throw new ToolsException("Utilisateur avec l'identifiant " + getParameterValue(ParameterNames.IDU) + " inexistant");
-				else
-					logger.trace("Utilisateur existant à modifier");
+				logger.trace("Utilisateur existant à modifier");
 			} else {
 				List<User> users = getDAO(UserDAO.class).getAllByNames(getUserNameSubmit(), getUserFirstNameSubmit());
 				if (users.size() > 0) {
 					if (users.size() == 1)
 						throw new ToolsException("Un utilisateur existe déjà avec ce nom et ce prénom");
-					else
-						throw new ToolsException("Plusieurs utilisateurs existent déjà avec ce nom et ce prénom");
-				} else {
-					logger.trace("Nouvel utilisateur à créer");
-					targetUser = new User();
-					targetUser.setAdministrator(false);
-					targetUser.setImage(null);
-				}
+					throw new ToolsException("Plusieurs utilisateurs existent déjà avec ce nom et ce prénom");
+				} 
+				logger.trace("Nouvel utilisateur à créer");
+				targetUser = new User();
+				targetUser.setAdministrator(false);
+				targetUser.setImage(null);
 			}
-		} catch (DAOInstantiationException | QueryException ex) {
+		} catch (QueryException ex) {
 			throw new ToolsException(ex);
 		}
 	}
@@ -144,7 +140,7 @@ public class TeamPlayerRegister extends ToolExecutorImpl {
 			
 			this.connection.commit();
 			this.connection.setAutoCommit(true);
-		} catch (DAOInstantiationException | DAOCrudException | DataValidationException | SQLException | ToolsException | QueryException ex) {
+		} catch (DAOCrudException | DataValidationException | SQLException | ToolsException | QueryException ex) {
 			try {
 				if (!this.connection.getAutoCommit()) {
 					this.connection.rollback();

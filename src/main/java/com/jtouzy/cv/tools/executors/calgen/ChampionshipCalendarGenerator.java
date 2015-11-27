@@ -21,7 +21,6 @@ import com.jtouzy.cv.tools.model.ParameterNames;
 import com.jtouzy.cv.tools.model.ToolExecutorImpl;
 import com.jtouzy.dao.DAOManager;
 import com.jtouzy.dao.errors.DAOCrudException;
-import com.jtouzy.dao.errors.DAOInstantiationException;
 import com.jtouzy.dao.errors.QueryException;
 import com.jtouzy.dao.errors.validation.DataValidationException;
 
@@ -64,7 +63,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 	}
 	
 	public void generate()
-	throws CalendarGenerationException, DAOCrudException, DataValidationException, DAOInstantiationException {
+	throws CalendarGenerationException {
 		try {
 			if (!simulation)
 				connection.setAutoCommit(false);
@@ -75,7 +74,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 				connection.commit();
 				connection.setAutoCommit(true);
 			}
-		} catch (DAOCrudException | DataValidationException | DAOInstantiationException | SQLException ex) {
+		} catch (DAOCrudException | DataValidationException | SQLException ex) {
 			try {
 				if (!connection.getAutoCommit()) {
 					connection.rollback();
@@ -135,7 +134,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 			this.teams = this.championship.getTeams();
 			this.season = this.championship.getCompetition().getSeason();
 			this.season = championshipDao.getOneWithDetails(championshipId).getCompetition().getSeason();
-		} catch (DAOInstantiationException | QueryException ex) {
+		} catch (QueryException ex) {
 			throw new CalendarGenerationException(ex);
 		}
 	}
@@ -174,7 +173,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 		try {
 			ChampionshipWeeksDAO championshipDao = DAOManager.getDAO(this.connection, ChampionshipWeeksDAO.class);	
 			this.weeks = championshipDao.getAllByChampionship(championshipId);
-		} catch (DAOInstantiationException | QueryException ex) {
+		} catch (QueryException ex) {
 			throw new CalendarGenerationException(ex);
 		} 
 	}
@@ -190,8 +189,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 		}
 	}
 	
-	private void calculateCalendar()
-	throws CalendarGenerationException {
+	private void calculateCalendar() {
 		// -> Initialisations
 		int matchCount = teamCount/2;
 		this.matchs = new ArrayList<>();
@@ -279,7 +277,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 	throws CalendarGenerationException {
 		try {
 			this.seasonTeams = DAOManager.getDAO(this.connection, SeasonTeamDAO.class).getAllBySeason(season.getIdentifier());
-		} catch (DAOInstantiationException | QueryException ex) {
+		} catch (QueryException ex) {
 			throw new CalendarGenerationException(ex);
 		}
 	}
