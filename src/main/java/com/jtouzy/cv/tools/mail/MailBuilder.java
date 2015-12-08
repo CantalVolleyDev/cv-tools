@@ -1,9 +1,19 @@
 package com.jtouzy.cv.tools.mail;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+import com.jtouzy.cv.model.classes.Match;
 import com.jtouzy.cv.model.classes.User;
 
 public class MailBuilder {
 
+	public static void sendMailMatchDateChanged(Match match, LocalDateTime oldDate, String dest) {
+		MailManager.sendMail(dest, 
+				             "[CantalVolley.fr] Modification d'une date de match",
+				 			 getMatchDateChangedMail(match, oldDate));
+	}
+	
 	public static void sendMailNewPassword(User user, String newPassword) {
 		MailManager.sendMail(user.getMail(), 
 				             "[CantalVolley.fr] Changement de mot de passe", 
@@ -53,4 +63,26 @@ public class MailBuilder {
 		return mail.toString();
 	}
 	
+	private static final String getMatchDateChangedMail(Match match, LocalDateTime oldDate) {
+		StringBuilder mail = new StringBuilder();
+		mail.append("Bonjour,")
+		    .append("\n\n")
+		    .append("La date du match ")
+		    .append(match.getFirstTeam().getLabel()).append("/").append(match.getSecondTeam().getLabel()).append(" ")
+		    .append("a été modifiée par votre adversaire. Vous n'avez pas besoin de confirmer cette nouvelle date, ")
+		    .append("elle est automatiquement validée. Si elle ne vous convient pas, merci de vous adresser directement ")
+		    .append("à l'équipe adverse.")
+		    .append("\n")
+		    .append("La nouvelle date est ")
+		    .append(match.getDate().format(DateTimeFormatter.ofPattern("EEEE dd-MM-yyyy à HH:mm"))).append(" ")
+		    .append("(Date précédente : ")
+		    .append(oldDate.format(DateTimeFormatter.ofPattern("EEEE dd-MM-yyyy à HH:mm")))
+		    .append(")")
+			.append("\n\n")
+			.append("Cordialement,\n")
+		    .append("Le Comité Départemental\n\n")
+		    .append("NB : Cet e-mail est automatique. Pour d'éventuels problèmes ou questions, vous pouvez répondre à ")
+		    .append("l'adresse d'expédition, un membre du comité prendra en charge votre demande.");
+		return mail.toString();
+	}
 }
