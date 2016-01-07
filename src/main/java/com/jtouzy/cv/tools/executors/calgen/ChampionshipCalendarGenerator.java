@@ -127,7 +127,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 	throws CalendarGenerationException {
 		try {
 			ChampionshipDAO championshipDao = DAOManager.getDAO(this.connection, ChampionshipDAO.class);
-			this.championship = championshipDao.getOneWithTeams(championshipId);
+			this.championship = championshipDao.getOneWithTeamsAndMatchs(championshipId);
 			if (this.championship == null) {
 				throw new CalendarGenerationException("Championnat " + championshipId + " inexistant");
 			}
@@ -209,6 +209,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 					match = createMatch();
 					match.setFirstTeam(team1.getTeam());
 					match.setSecondTeam(team2.getTeam());
+					match.setGym(team1.getTeam().getGym());
 					match.setStep(j);
 					seasonTeam = match.getFirstTeam();
 					match.setDate(weeks.get(j-1) 
@@ -253,6 +254,7 @@ public class ChampionshipCalendarGenerator extends ToolExecutorImpl {
 			match2 = createMatch();
 			match2.setFirstTeam(match.getSecondTeam());
 			match2.setSecondTeam(match.getFirstTeam());
+			match2.setGym(match2.getFirstTeam().getGym());
 			match2.setStep(j);
 			seasonTeam = match2.getFirstTeam();
 			match2.setDate(weeks.get(j-1)
