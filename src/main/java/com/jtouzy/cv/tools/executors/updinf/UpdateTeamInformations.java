@@ -83,8 +83,6 @@ public class UpdateTeamInformations extends ToolExecutorImpl {
 	}
 	
 	public void updateCascade() {
-		if (!hasParameter(ParameterNames.DATE))
-			return;
 		try {
 			List<Match> allMatchs = 
 					getDAO(MatchDAO.class).getAllBySeasonAndUser(
@@ -113,6 +111,7 @@ public class UpdateTeamInformations extends ToolExecutorImpl {
 			Iterator<Match> itm = allMatchs.iterator();
 			Match match;
 			LocalDateTime date = seasonTeam.getDate();
+			Gym gym = seasonTeam.getGym();
 			while (itm.hasNext()) {
 				match = itm.next();
 				logger.trace("Mise à jour du match n°" + match.getIdentifier());
@@ -122,6 +121,7 @@ public class UpdateTeamInformations extends ToolExecutorImpl {
 					                          	  .plusDays(date.getDayOfWeek().getValue() - 1)
 					                          	  .plusHours(date.getHour())
 					                          	  .plusMinutes(date.getMinute()));
+				match.setGym(gym);
 				getDAO(MatchDAO.class).update(match);
 			}
 		} catch (QueryException | DataValidationException | DAOCrudException ex) {
